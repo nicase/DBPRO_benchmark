@@ -57,7 +57,7 @@ def euclidean_distance(query_vector, base_vectors):
 def top_k_neighbors(query_vectors, base_vectors, k=100, function = 'euclidean'):
     '''
         Calculates the top k neighbors (ground truth). For now only with euclidean distance. 
-        TODO: add other functions (cosine similarity, etc)
+        TODO: add other functions (cosine similarity, etc).
     '''
     top_k_indices = []
     for query_vector in query_vectors:
