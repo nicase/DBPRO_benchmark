@@ -53,17 +53,30 @@ def euclidean_distance(query_vector, base_vectors):
     distances = np.sqrt(np.sum((base_vectors - query_vector) ** 2, axis=1))
     return distances
 
+def filter_by_attributes(indices, attributes, points):
+    filtered_indices = []
+    for i in indices:
+        point_attributes = points[i].payload
+        if all(point_attributes.get(attr) == value for attr, value in attributes.items()):
+            filtered_indices.append(i)
+    return np.array(filtered_indices)
 
-def top_k_neighbors(query_vectors, base_vectors, k=100, function = 'euclidean'):
+def top_k_neighbors(query_vectors, base_vectors, k=100, function='euclidean', attributes=None, points=None):
     '''
-        Calculates the top k neighbors (ground truth). For now only with euclidean distance. 
-        TODO: add other functions (cosine similarity, etc).
+        Calculates the top k neighbors (ground truth) based on Euclidean distance.
     '''
+    if function != 'euclidean':
+        raise NotImplementedError("Other distance functions are not yet implemented")
+
     top_k_indices = []
     for query_vector in query_vectors:
         distances = euclidean_distance(query_vector, base_vectors)
-        
         k_indices = np.argsort(distances)[:k]
+
+        if attributes and points:
+            k_indices = filter_by_attributes(k_indices, attributes, points)
+
         top_k_indices.append(k_indices)
     
     return np.array(top_k_indices)
+
