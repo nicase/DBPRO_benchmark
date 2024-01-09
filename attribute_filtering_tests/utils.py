@@ -53,7 +53,12 @@ def euclidean_distance(query_vector, base_vectors):
     distances = np.sqrt(np.sum((base_vectors - query_vector) ** 2, axis=1))
     return distances
 
+
 def top_k_neighbors(query_vectors, base_vectors, k=100, function = 'euclidean'):
+    '''
+        Calculates the top k neighbors (ground truth). For now only with euclidean distance. 
+        TODO: add other functions (cosine similarity, etc)
+    '''
     top_k_indices = []
     for query_vector in query_vectors:
         distances = euclidean_distance(query_vector, base_vectors)
