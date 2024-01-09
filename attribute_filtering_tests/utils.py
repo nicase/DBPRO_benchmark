@@ -48,3 +48,17 @@ def read_ivecs(file_path):
     final_dataframe = reshaped_bulk[:, 1:]
     print(f'    The final shape of the loaded dataset is {final_dataframe.shape}.')
     return final_dataframe
+
+def euclidean_distance(query_vector, base_vectors):
+    distances = np.sqrt(np.sum((base_vectors - query_vector) ** 2, axis=1))
+    return distances
+
+def top_k_neighbors(query_vectors, base_vectors, k=100, function = 'euclidean'):
+    top_k_indices = []
+    for query_vector in query_vectors:
+        distances = euclidean_distance(query_vector, base_vectors)
+        
+        k_indices = np.argsort(distances)[:k]
+        top_k_indices.append(k_indices)
+    
+    return np.array(top_k_indices)
