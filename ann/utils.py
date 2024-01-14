@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 
 def read_fvecs(file_path):
     # Source: http://corpus-texmex.irisa.fr/
@@ -50,7 +49,6 @@ def read_ivecs(file_path):
     print(f'    The final shape of the loaded dataset is {final_dataframe.shape}.')
     return final_dataframe
 
-
 def calculate_distance(vector1, vector2, similarity_function='euclidean'):
     if similarity_function == 'euclidean':
         return np.linalg.norm(np.array(vector1) - np.array(vector2), ord=2)
@@ -59,21 +57,39 @@ def calculate_distance(vector1, vector2, similarity_function='euclidean'):
     else:
         raise ValueError("Unsupported similarity function")
 
-def range_truth(query_vectors, base_vectors, threshold = 300, function='euclidean'):
-
-    distances_df = pd.DataFrame(index=query_vectors.index, columns=base_vectors.index)
-
-
-    for i, vector1 in enumerate(query_vectors['vector']):
-        for j, vector2 in enumerate(base_vectors['vector']):
-            distance = calculate_distance(vector1, vector2, similarity_function='euclidean')
-            distances_df.at[i, j] = distance
+def select_k_closest_elements(df, reference_vector, k, similarity_function='euclidean'):
+    df = df.copy() 
+    df['distance'] = df['vector'].apply(lambda v: calculate_distance(v, reference_vector, similarity_function))
+    result_df = df.nsmallest(k, 'distance').drop(columns=['distance'])
+    return result_df.index.values
 
 
-    mask = distances_df < threshold
-    ids = np.empty((len(query_vectors),), dtype=object)
-    for i in range(len(query_vectors)):
-        ids[i] = np.where(mask.iloc[i])[0]
+def filter_by_attributes(qvec, bvecs):
+    columns_to_match = bvecs.columns[1:]
 
+    mask = (bvecs[columns_to_match] == qvec[columns_to_match]).all(axis=1)
 
-    return ids
+    filtered_df = bvecs[mask]
+
+    return filtered_df
+
+def top_k_neighbors(query_vectors, base_vectors, k=100, function='euclidean', filtering = True):
+    '''
+        Calculates the top k neighbors (ground truth), if filtering = True, we filter all boolean attributes as well.
+    '''
+    if function != 'euclidean':
+        raise NotImplementedError("Other distance functions are not yet implemented")
+
+    top_k_indices = []
+    
+    for _, elem in query_vectors.iterrows():
+        if(filtering):
+            filtered_df = filter_by_attributes(elem, base_vectors)
+        else:
+            filtered_df = base_vectors
+            
+        result = select_k_closest_elements(filtered_df, elem["vector"], k=100)
+        top_k_indices.append(result)
+    
+    return top_k_indices
+
