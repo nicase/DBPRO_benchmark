@@ -24,8 +24,6 @@ def read_fvecs(file_path):
     print(f'    The final shape of the loaded dataset {file_path.split("/")[-1]} is {final_dataframe.shape}.')
     return final_dataframe
 
-
-
 def read_ivecs(file_path):
     # Source: http://corpus-texmex.irisa.fr/
     # (From source):
