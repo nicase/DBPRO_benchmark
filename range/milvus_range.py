@@ -7,8 +7,6 @@ from pymilvus import (
     FieldSchema, CollectionSchema, DataType,
     Collection,
 )
-import psutil
-
 
 def bvecs_read(fname):
     a = np.fromfile(fname, dtype=np.int32, count=1)
@@ -65,7 +63,7 @@ def get_ground_truths_for_range_queries(query_vectors, base_vectors, radius, top
 # Connect to Milvus server
 client = connections.connect(host='localhost', port='19530')
 
-COLLECTION_NAME = "SIFT_EXPERIMENT"
+COLLECTION_NAME = "SIFT_EXPERIMENT_RANGE"
 
 has = utility.has_collection(COLLECTION_NAME)
 print(f"Does collection SIFT10K_Collection exist in Milvus: {has}")
@@ -82,9 +80,9 @@ print("Create collection SIFT10K")
 collection = Collection(COLLECTION_NAME, schema)
 
 # Read the SIFT datasets
-base_vectors = list(fvecs_read('siftsmall/siftsmall_base.fvecs'))
-query_vectors = list(fvecs_read('siftsmall/siftsmall_query.fvecs'))
-training_vectors = list(fvecs_read('siftsmall/siftsmall_learn.fvecs'))
+base_vectors = list(fvecs_read('sift/sift_base.fvecs'))
+query_vectors = list(fvecs_read('sift/sift_query.fvecs'))
+training_vectors = list(fvecs_read('sift/sift_learn.fvecs'))
 # ground_truth = list(ivecs_read('siftsmall/siftsmall_groundtruth.ivecs'))
 RADIUS = 90000
 # ground_truth = get_ground_truths(query_vectors, base_vectors, 100)
@@ -112,7 +110,7 @@ insert_in_batches(collection, vector_ids, base_vectors)
 ivf_flat_params = {
     "metric_type": "L2",   # or any other metric type suitable for your data
     "index_type": "IVF_FLAT",  # choose an index type
-    "params": {"nlist": 16384}  # adjust parameters based on your dataset and needs
+    "params": {"nlist": 4096}  # adjust parameters based on your dataset and needs
 }
 
 hnsw_params = {
@@ -144,7 +142,7 @@ search_params = {
     "offset":0,
     "metric_type": "L2",
     "params": {
-        "nprobe": 100,
+        "nprobe": 128,
         # search for vectors with a distance smaller than 1.0
         "radius": RADIUS,
         # filter out vectors with a distance smaller than or equal to 0.8
@@ -167,34 +165,23 @@ average_latency = time_taken / queries_count
 print(f"Throughput: {throughput:.2f} queries per second")
 print(f"Average Latency: {average_latency:.4f} seconds")
 
-# Memory Consumption and CPU Utilization
-memory_use = psutil.virtual_memory().used
-cpu_use = psutil.cpu_percent(interval=1)
-print(f"Memory Consumption: {memory_use} bytes")
-print(f"CPU Utilization: {cpu_use}%")
-
-R = 100  # Set this to your desired rank
-
 # Calculate recall@R
 total_relevant = 0
 total_retrieved_relevant = 0
 
 for i in range(len(query_results)):
     query_result = query_results[i]
-    print(query_result)
+    # print(query_result)
     ground_truth_ids = ground_truth[i]
     retrieved_ids = [hit.id for hit in query_result]  # Consider only the top R results
 
     relevant_retrieved = len(set(ground_truth_ids).intersection(retrieved_ids))
-    print(f"Query {i}: Retrieved = {len(retrieved_ids)}, Ground Truth = {len(ground_truth_ids)}, Recall@{R} = {relevant_retrieved / len(ground_truth_ids) if len(ground_truth_ids) > 0 else 0}")
+    # print(f"Query {i}: Retrieved = {len(retrieved_ids)}, Ground Truth = {len(ground_truth_ids)}, Recall@{R} = {relevant_retrieved / len(ground_truth_ids) if len(ground_truth_ids) > 0 else 0}")
     
-    print("GT : ", ground_truth_ids)
-    print("Retrieved :", retrieved_ids)
+    # print("GT : ", ground_truth_ids)
+    # print("Retrieved :", retrieved_ids)
     total_retrieved_relevant += relevant_retrieved
     total_relevant += len(ground_truth_ids)
-
-recall_at_R = total_retrieved_relevant / total_relevant if total_relevant > 0 else 0
-print(f"Total Recall@{R}: {recall_at_R}")
 
 recall = total_retrieved_relevant / total_relevant
 

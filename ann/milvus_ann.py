@@ -7,8 +7,6 @@ from pymilvus import (
     FieldSchema, CollectionSchema, DataType,
     Collection,
 )
-import psutil
-
 
 def bvecs_read(fname):
     a = np.fromfile(fname, dtype=np.int32, count=1)
@@ -31,7 +29,7 @@ def fvecs_read(fname):
 # Connect to Milvus server
 client = connections.connect(host='localhost', port='19530')
 
-COLLECTION_NAME = "SIFT_EXPERIMENT"
+COLLECTION_NAME = "SIFT_EXPERIMENT_ANN"
 
 has = utility.has_collection(COLLECTION_NAME)
 print(f"Does collection SIFT10K_Collection exist in Milvus: {has}")
@@ -48,10 +46,10 @@ print("Create collection SIFT10K")
 collection = Collection(COLLECTION_NAME, schema)
 
 # Read the SIFT datasets
-base_vectors = list(fvecs_read('siftsmall/siftsmall_base.fvecs'))
-query_vectors = list(fvecs_read('siftsmall/siftsmall_query.fvecs'))
-training_vectors = list(fvecs_read('siftsmall/siftsmall_learn.fvecs'))
-ground_truth = list(ivecs_read('siftsmall/siftsmall_groundtruth.ivecs'))
+base_vectors = list(fvecs_read('sift/sift_base.fvecs'))
+query_vectors = list(fvecs_read('sift/sift_query.fvecs'))
+training_vectors = list(fvecs_read('sift/sift_learn.fvecs'))
+ground_truth = list(ivecs_read('sift/sift_groundtruth.ivecs'))
 
 
 vector_ids = list(range(len(base_vectors)))
@@ -73,7 +71,7 @@ insert_in_batches(collection, vector_ids, base_vectors)
 ivf_flat_params = {
     "metric_type": "L2",   # or any other metric type suitable for your data
     "index_type": "IVF_FLAT",  # choose an index type
-    "params": {"nlist": 16384}  # adjust parameters based on your dataset and needs
+    "params": {"nlist": 4096}  # adjust parameters based on your dataset and needs
 }
 
 hnsw_params = {
@@ -92,12 +90,7 @@ index_end_time = time.time()
 indexing_time = index_end_time - index_start_time
 print(f"Indexing Time: {indexing_time:.2f} seconds")
 
-# Load the collection
 collection.load()
-
-# index_size = utility.get_index_size(collection_name, "feature")
-#print(f"Index Size: {index_size} bytes")
-
 
 # Perform search and calculate throughput
 start_time = time.time()
@@ -105,11 +98,9 @@ search_params = {
     "offset":0,
     "metric_type": "L2",
     "params": {
-        "nprobe": 100
+        "nprobe": 128
         },
     }
-
-# output_fields = ["dummy_attr_filtering"] 
 
 
 query_start_time = time.time()
@@ -123,23 +114,13 @@ average_latency = time_taken / queries_count
 print(f"Throughput: {throughput:.2f} queries per second")
 print(f"Average Latency: {average_latency:.4f} seconds")
 
-# Memory Consumption and CPU Utilization
-memory_use = psutil.virtual_memory().used
-cpu_use = psutil.cpu_percent(interval=1)
-print(f"Memory Consumption: {memory_use} bytes")
-print(f"CPU Utilization: {cpu_use}%")
-
-R = 100  # Set this to your desired rank
-
-# Calculate recall@R
 total_relevant = 0
 total_retrieved_relevant = 0
 
 for i in range(len(query_results)):
     query_result = query_results[i]
-    print(query_result)
     ground_truth_ids = ground_truth[i]
-    retrieved_ids = [hit.id for hit in query_result]  # Consider only the top R results
+    retrieved_ids = [hit.id for hit in query_result]
 
     relevant_retrieved = len(set(ground_truth_ids).intersection(retrieved_ids))
     # print(f"Query {i}: Retrieved = {len(retrieved_ids)}, Ground Truth = {len(ground_truth_ids)}, Recall@{R} = {relevant_retrieved / len(ground_truth_ids) if len(ground_truth_ids) > 0 else 0}")
@@ -149,11 +130,8 @@ for i in range(len(query_results)):
     total_retrieved_relevant += relevant_retrieved
     total_relevant += len(ground_truth_ids)
 
-recall_at_R = total_retrieved_relevant / total_relevant if total_relevant > 0 else 0
-print(f"Total Recall@{R}: {recall_at_R}")
-
 recall = total_retrieved_relevant / total_relevant
 
-print(f"Recall: {recall:.4f}")
+print(f"Average Recall: {recall:.4f}")
 
 utility.drop_collection(COLLECTION_NAME)
