@@ -80,7 +80,8 @@ def top_k_neighbors(query_vectors, base_vectors, k=100, function='euclidean', fi
 
     top_k_indices = []
     
-    for _, elem in query_vectors.iterrows():
+    for i, elem in query_vectors.iterrows():
+        print(f'{i}/{len(query_vectors)}', end='\r')
         if(filtering):
             filtered_df = filter_by_attributes(elem, base_vectors)
         else:
