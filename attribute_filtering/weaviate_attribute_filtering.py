@@ -8,9 +8,9 @@ import uuid
 import time
 import csv
 
-base_vectors = utils.read_fvecs("datasets\sifts_base.fvecs")
-query_vectors = utils.read_fvecs("datasets\sift_query.fvecs")
-knn_groundtruth = utils.read_ivecs("datasets\sift_groundtruth.ivecs")
+base_vectors = utils.read_fvecs("datasets\small\siftsmall_base.fvecs")
+query_vectors = utils.read_fvecs("datasets\small\siftsmall_query.fvecs")
+knn_groundtruth = utils.read_ivecs("datasets\small\siftsmall_groundtruth.ivecs")
 
 base_vectors_with_attributes = pd.DataFrame({'vector': base_vectors.tolist()})
 query_vectors_with_attributes = pd.DataFrame({'vector': query_vectors.tolist()})
@@ -48,8 +48,7 @@ def upload_data(class_name):
     client.batch.configure(batch_size=100)  # Configure batch
     with client.batch as batch:
         for i, data_obj in enumerate(data_objs):
-            print(data_obj, vectors[i])
-            batch.add_data_object(
+                batch.add_data_object(
                 data_obj,
                 class_name,
                 vector=vectors[i],
@@ -121,8 +120,9 @@ def create_HSNW_collections(ef, maxConnections, efConstruction, to_name):
     client.schema.create_class(class_obj)
     upload_data(class_name)
 
+
 ef = [64, 128, 256, 512]
-maxConnections = [8, 16, 32, 63]
+maxConnections = [8, 16, 32, 64]
 efConstruction = [64, 128, 256, 512]
 names = []
 
@@ -209,8 +209,10 @@ def run_query(name, k, query_vec, base_vec):
         true_positives += true_positives_iter
         n_classified += len(elem)
     print(f'Average recall: of {name} {true_positives/n_classified}')
-
-    writer.writerow([name, k, throughput, throughput, average_latency])
+    
+    with open("results_attribute_weviate.csv", mode='a') as file:
+        writer = csv.writer(file)
+        writer.writerow([name, k, (true_positives/n_classified), throughput, average_latency])
     # sum = 0
     # for i,j in enumerate(result_indexes):
     #     intersection = np.intersect1d(truth[i], j)
@@ -220,16 +222,11 @@ def run_query(name, k, query_vec, base_vec):
 k_number = [1, 10, 100]
 for i in names:
     for j in range(3):
-        print('running the query for', names , k)
         run_query(i, k_number[j], query_vectors_with_attributes, base_vectors_with_attributes)
 
 run_query("Siftsmall_flat_index" , 100, query_vectors_with_attributes, base_vectors_with_attributes)
-
-
-import csv
-
 # Specify the file name
-csv_file_name = "results_weviate.csv"
+csv_file_name = "results_attribute_weviate.csv"
 # Define the column names
 columns = ["name", "k", "throughput", "latency", "average_recall"]
 # Create an empty CSV file with header
