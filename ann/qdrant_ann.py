@@ -3,7 +3,7 @@ from qdrant_client.http import models
 from qdrant_client.http.models import Distance, VectorParams
 from qdrant_client.http.models import PointStruct
 import numpy as np
-import random, time, utils
+import random, time, utils, datetime, csv
 import pandas as pd
 
 def setup_client():
@@ -19,13 +19,17 @@ def read_dataset():
     knn_groundtruth = utils.read_ivecs("../../dataset/sift/sift_groundtruth.ivecs")
     return base_vectors, query_vectors, knn_groundtruth
 
-def create_collection(qdrantClient, collection_name):
+def create_collection(qdrantClient, collection_name, ef_construct, m):
     vector_size = 128
 
     qdrantClient.delete_collection(collection_name=collection_name)
 
     qdrantClient.recreate_collection(
         collection_name=collection_name,
+        hnsw_config=models.HnswConfigDiff(
+            m=m,
+            ef_construct=ef_construct
+        ),
         vectors_config=VectorParams(size=vector_size, distance=Distance.EUCLID),
     )
 
@@ -49,51 +53,87 @@ def insert_values(base_vectors, qdrantClient, collection_name):
             )
         )
 
-def search_queries(query_vectors, qdrantClient, collection_name):
+def search_queries(query_vectors, qdrantClient, collection_name, ef, k):
     print(f'Search function starting')
     result_ids = []
     for i,elem in enumerate(query_vectors):
         print(f'Progress: {i}/{len(query_vectors)}', end='\r')
         search_result = qdrantClient.search(
             collection_name=collection_name, 
+            search_params=models.SearchParams(
+                hnsw_ef=ef,
+                exact=False
+            ), 
             query_vector=elem, 
-            limit=100
+            limit=k
         )
         result_ids.append([elem.id for elem in search_result])
 
     return result_ids
 
-def print_metrics(result_ids, nqueries, time_span, truth):
-    true_positives = 0
-    n_classified = 0
-    for i,elem in enumerate(result_ids):
-        true_positives_iter = len(np.intersect1d(truth[i], result_ids[i]))
-        true_positives += true_positives_iter
-        n_classified += len(elem)
-    print(true_positives)
-    print(n_classified)
-    print(f'QPS = {(nqueries / time_span):.4f}')
-    print(f'Average recall: {true_positives/n_classified}')
+def print_metrics(ef_construct, m, ef, k, qps, recall, file_name, time_span_insert, time_span_search):
+    with open(file_name,'a') as fd:
+        fd.write(f'{ef_construct}, {m}, {ef}, {k}, {qps}, {recall}, {time_span_insert}, {time_span_search}\n')
+
 
 def main():
+    ef_construct_values = [64, 128, 256, 512]
+    m_values = [8, 16, 32, 64]
+    ef_values = [64, 128, 256, 512]
+
+    # Create csv file
+    current_date = datetime.datetime.now().strftime("%d_%m_%y_%H:%M")
+    headers = ["ef_construct", "m", "ef", "k", "qps", "recall", "time_span_insert", "time_span_search"]
+    file_name = f"qdrant{current_date}.csv"
+    # print(datetime)
+
+    with open(file_name, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(headers)
+
+    # return
+
     qdrantClient = setup_client()
     baseV, queryV, groundTruthV = read_dataset()
+    for ef_construct in ef_construct_values:
+        for m in m_values:
+            for ef in ef_values:
+                print("---------------------------------- CURRENT CONFIGURATION ----------------------------------")
+                print(f'ef_construct: {ef_construct} \nm: {m}\nef: {ef}')
+                print("-------------------------------------------------------------------------------------------")
 
-    collection_name = "ann_1M"
-    create_collection(qdrantClient, collection_name)
+                collection_name = "ann_1M"
+                create_collection(qdrantClient, collection_name, ef_construct, m)
 
-    print("---------------------------------- INSERTING VALUES ----------------------------------")
-    insert_values(baseV, qdrantClient, collection_name)
-    print("-------------------------------------------------------------------------------------")
+                print("---------------------------------- INSERTING VALUES ----------------------------------")
+                start_time_insert = time.time()
+                insert_values(baseV, qdrantClient, collection_name)
+                end_time_insert = time.time()
+                time_span_insert = end_time_insert - start_time_insert
+                print("-------------------------------------------------------------------------------------")
 
-    # truth = utils.top_k_neighbors(queryV, baseV, k=100, function='euclidean', filtering=False) 
+                # truth = utils.top_k_neighbors(queryV, baseV, k=100, function='euclidean', filtering=False) 
+                k_values = [1, 10, 100]
+                for k in k_values:
+                    start_time_search = time.time()
+                    result_ids = search_queries(queryV, qdrantClient, collection_name, ef, k)
+                    end_time_search = time.time()
+                    time_span_search = end_time_search - start_time_search
 
-    start_time = time.time()
-    result_ids = search_queries(queryV, qdrantClient, collection_name)
-    end_time = time.time()
-    time_span = end_time - start_time
+                    true_positives = 0
+                    n_classified = 0
+                    for i,elem in enumerate(result_ids):
+                        true_positives_iter = len(np.intersect1d(groundTruthV[i][:k], result_ids[i]))
+                        true_positives += true_positives_iter
+                        n_classified += len(elem)
 
-    print_metrics(result_ids, len(queryV), time_span, groundTruthV)
+                    qps = len(queryV) / time_span_search
+                    recall = true_positives/n_classified
+
+                    print_metrics(ef_construct, m, ef, k, qps, recall, file_name, time_span_insert, time_span_search)
+
+
+
 
 if __name__ == "__main__":
     main()

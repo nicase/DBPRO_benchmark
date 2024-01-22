@@ -79,7 +79,7 @@ def top_k_neighbors(query_vectors, base_vectors, k=100, function='euclidean', fi
     '''
     if function != 'euclidean':
         raise NotImplementedError("Other distance functions are not yet implemented")
-
+    
     top_k_indices = []
     
     for _, elem in query_vectors.iterrows():
@@ -87,8 +87,8 @@ def top_k_neighbors(query_vectors, base_vectors, k=100, function='euclidean', fi
             filtered_df = filter_by_attributes(elem, base_vectors)
         else:
             filtered_df = base_vectors
-            
-        result = select_k_closest_elements(filtered_df, elem["vector"], k=100)
+             
+        result = select_k_closest_elements(filtered_df, elem["vector"], k)
         top_k_indices.append(result)
     
     return top_k_indices
