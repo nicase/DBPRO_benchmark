@@ -7,7 +7,6 @@ from pymilvus import (
     FieldSchema, CollectionSchema, DataType,
     Collection,
 )
-import psutil
 
 
 def bvecs_read(fname):
@@ -27,7 +26,16 @@ def fvecs_read(fname):
     return ivecs_read(fname).view('float32')
 
 
-def get_ground_truths(query_vectors, base_vectors, top_n=100):
+def get_indices(dummy_field, threshold):
+    indices = []
+
+    for i in range(len(dummy_field)):
+        if dummy_field[i] < threshold:
+            indices.append(i)
+    return indices
+
+
+def get_ground_truths(query_vectors, base_vectors, filtered_indices, top_n=100):
     base_vectors = np.array(base_vectors)
     indices = []
 
@@ -36,7 +44,9 @@ def get_ground_truths(query_vectors, base_vectors, top_n=100):
         # Compute the Euclidean distances
         distances = np.linalg.norm(base_vectors - query, axis=1)**2
         # Find the indices of the closest vectors
-        closest_indices = np.argsort(distances)[:top_n]
+        closest_indices = np.argsort(distances)
+        closest_indices = np.array([element for element in closest_indices if element not in filtered_indices])
+        closest_indices = closest_indices[:top_n]
         indices.append(closest_indices.tolist())
 
     return indices
@@ -45,7 +55,7 @@ def get_ground_truths(query_vectors, base_vectors, top_n=100):
 # Connect to Milvus server
 client = connections.connect(host='localhost', port='19530')
 
-COLLECTION_NAME = "SIFT_EXPERIMENT"
+COLLECTION_NAME = "SIFT_EXPERIMENT_ATTRIBUTE_FILTERING"
 
 has = utility.has_collection(COLLECTION_NAME)
 print(f"Does collection SIFT10K_Collection exist in Milvus: {has}")
@@ -63,13 +73,18 @@ print("Create collection SIFT10K")
 collection = Collection(COLLECTION_NAME, schema)
 
 # Read the SIFT datasets
-base_vectors = list(fvecs_read('siftsmall/siftsmall_base.fvecs'))
-query_vectors = list(fvecs_read('siftsmall/siftsmall_query.fvecs'))
-training_vectors = list(fvecs_read('siftsmall/siftsmall_learn.fvecs'))
-# ground_truth = list(ivecs_read('siftsmall/siftsmall_groundtruth.ivecs'))
-ground_truth = get_ground_truths(query_vectors, base_vectors, 100)
+base_vectors = list(fvecs_read('sift/sift_base.fvecs'))
+query_vectors = list(fvecs_read('sift/sift_query.fvecs'))
+training_vectors = list(fvecs_read('sift/sift_learn.fvecs'))
+# ground_truth = list(ivecs_read('sift/sift_groundtruth.ivecs'))
 
 dummy_attr_filtering = list(np.arange(len(base_vectors)))
+
+ATTRIBUTE_THRESHOLD = 30
+
+indices = get_indices(dummy_attr_filtering, ATTRIBUTE_THRESHOLD)
+
+ground_truth = get_ground_truths(query_vectors, base_vectors, indices, 100)
 
 vector_ids = list(range(len(base_vectors)))
 
@@ -80,8 +95,9 @@ def insert_in_batches(collection, ids, vectors, dummy_attr_filtering, batch_size
     for i in range(0, total, batch_size):
         batch_ids = ids[i:i + batch_size]
         batch_vectors = vectors[i:i + batch_size]
-        dummy_attr_filtering = dummy_attr_filtering[i:i + batch_size]
-        mr = collection.insert([batch_ids, batch_vectors, dummy_attr_filtering])
+        dummy_attr_filter = dummy_attr_filtering[i:i + batch_size]
+        mr = collection.insert([batch_ids, batch_vectors, dummy_attr_filter])
+        print(i + batch_size)
         print(f"Inserted batch {i // batch_size + 1}/{(total + batch_size - 1) // batch_size}")
 
 # Insert data
@@ -91,7 +107,7 @@ insert_in_batches(collection, vector_ids, base_vectors, dummy_attr_filtering)
 ivf_flat_params = {
     "metric_type": "L2",   # or any other metric type suitable for your data
     "index_type": "IVF_FLAT",  # choose an index type
-    "params": {"nlist": 16384}  # adjust parameters based on your dataset and needs
+    "params": {"nlist": 4096}  # adjust parameters based on your dataset and needs
 }
 
 hnsw_params = {
@@ -123,7 +139,7 @@ search_params = {
     "offset":0,
     "metric_type": "L2",
     "params": {
-        "nprobe": 100
+        "nprobe": 128
         },
     }
 
@@ -131,7 +147,7 @@ output_fields = ["dummy_attr_filtering"]
 
 
 query_start_time = time.time()
-query_results = collection.search(query_vectors, "feature", search_params, limit=100, output_fields=output_fields, expr="dummy_attr_filtering >= 30")
+query_results = collection.search(query_vectors, "feature", search_params, limit=100, output_fields=output_fields, expr="dummy_attr_filtering >= {}".format(ATTRIBUTE_THRESHOLD))
 end_time = time.time()
 
 queries_count = len(query_vectors)
@@ -141,34 +157,23 @@ average_latency = time_taken / queries_count
 print(f"Throughput: {throughput:.2f} queries per second")
 print(f"Average Latency: {average_latency:.4f} seconds")
 
-# Memory Consumption and CPU Utilization
-memory_use = psutil.virtual_memory().used
-cpu_use = psutil.cpu_percent(interval=1)
-print(f"Memory Consumption: {memory_use} bytes")
-print(f"CPU Utilization: {cpu_use}%")
 
-R = 100  # Set this to your desired rank
-
-# Calculate recall@R
 total_relevant = 0
 total_retrieved_relevant = 0
 
 for i in range(len(query_results)):
     query_result = query_results[i]
-    print(query_result)
+    # print(query_result)
     ground_truth_ids = ground_truth[i]
     retrieved_ids = [hit.id for hit in query_result]  # Consider only the top R results
 
     relevant_retrieved = len(set(ground_truth_ids).intersection(retrieved_ids))
-    print(f"Query {i}: Retrieved = {len(retrieved_ids)}, Ground Truth = {len(ground_truth_ids)}, Recall@{R} = {relevant_retrieved / len(ground_truth_ids) if len(ground_truth_ids) > 0 else 0}")
+    # print(f"Query {i}: Retrieved = {len(retrieved_ids)}, Ground Truth = {len(ground_truth_ids)}, Recall@{R} = {relevant_retrieved / len(ground_truth_ids) if len(ground_truth_ids) > 0 else 0}")
     
-    print("GT : ", ground_truth_ids)
-    print("Retrieved :", retrieved_ids)
+    # print("GT : ", ground_truth_ids)
+    # print("Retrieved :", retrieved_ids)
     total_retrieved_relevant += relevant_retrieved
     total_relevant += len(ground_truth_ids)
-
-recall_at_R = total_retrieved_relevant / total_relevant if total_relevant > 0 else 0
-print(f"Total Recall@{R}: {recall_at_R}")
 
 recall = total_retrieved_relevant / total_relevant
 
