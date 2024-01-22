@@ -17,7 +17,7 @@ def read_dataset():
     base_vectors = utils.read_fvecs("../../dataset/sift/sift_base.fvecs")
     query_vectors = utils.read_fvecs("../../dataset/sift/sift_query.fvecs")
     knn_groundtruth = utils.read_ivecs("../../dataset/sift/sift_groundtruth.ivecs")
-    return base_vectors, query_vectors, knn_groundtruth
+    return base_vectors, query_vectors[:5000], knn_groundtruth
 
 def create_collection(qdrantClient, collection_name, ef_construct, m):
     vector_size = 128
