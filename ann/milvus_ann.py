@@ -9,6 +9,16 @@ from pymilvus import (
     Collection,
 )
 
+import docker
+
+def restart_milvus_container(container_name_or_id):
+    client = docker.from_env()
+    container = client.containers.get(container_name_or_id)
+    container.stop()
+    time.sleep(60)
+    container.start()
+    print(f"Container {container_name_or_id} restarted successfully.")
+
 def bvecs_read(fname):
     a = np.fromfile(fname, dtype=np.int32, count=1)
     b = np.fromfile(fname, dtype=np.uint8)
@@ -180,12 +190,18 @@ def run_experiment(run_ivf, m, ef, lim):
 
 
 run_experiment(run_ivf=True, m=None, ef=None, lim=1)
+restart_milvus_container('milvus-standalone')
 run_experiment(run_ivf=True, m=None, ef=None, lim=10)
+restart_milvus_container('milvus-standalone')
 run_experiment(run_ivf=True, m=None, ef=None, lim=100)
+restart_milvus_container('milvus-standalone')
 for m in m_values:
     for ef in ef_construction_values:
         for lim in limit_values:
+            if m == 8 and ef == 64 and lim == 1:
+                continue
             run_experiment(run_ivf=False, m=m, ef=ef, lim=lim)
+            restart_milvus_container('milvus-standalone')
 
 
 def write_to_csv(file_name, data):

@@ -9,6 +9,17 @@ from pymilvus import (
     Collection,
 )
 
+import docker
+
+def restart_milvus_container(container_name_or_id):
+    client = docker.from_env()
+    container = client.containers.get(container_name_or_id)
+    container.stop()
+    time.sleep(60)
+    container.start()
+    print(f"Container {container_name_or_id} restarted successfully.")
+
+# restart_milvus_container('milvus-standalone')
 
 def bvecs_read(fname):
     a = np.fromfile(fname, dtype=np.int32, count=1)
@@ -57,18 +68,44 @@ def get_ground_truths(query_vectors, base_vectors, filtered_indices, top_n=100):
 client = connections.connect(host='localhost', port='19530')
 
 # Read the SIFT datasets
-base_vectors = list(fvecs_read('sift/sift_base.fvecs'))
-query_vectors = list(fvecs_read('sift/sift_query.fvecs'))
-training_vectors = list(fvecs_read('sift/sift_learn.fvecs'))
+# base_vectors = list(fvecs_read('siftsmall/siftsmall_base.fvecs'))
+# query_vectors = list(fvecs_read('siftsmall/siftsmall_query.fvecs'))
+# training_vectors = list(fvecs_read('siftsmall/siftsmall_learn.fvecs'))
 # ground_truth = list(ivecs_read('sift/sift_groundtruth.ivecs'))
 
-dummy_attr_filtering = list(np.arange(len(base_vectors)))
+import pickle
+with open('base_vectors_with_attributes.pkl', 'rb') as f:
+    base_vectors_with_attributes = pickle.load(f)
+with open('query_vectors_with_attributes.pkl', 'rb') as f:
+    query_vectors_with_attributes = pickle.load(f)    
+with open('calculated_truth.pkl', 'rb') as f:
+    truth = pickle.load(f)
 
-ATTRIBUTE_THRESHOLD = 30
 
-indices = get_indices(dummy_attr_filtering, ATTRIBUTE_THRESHOLD)
+truth = [list(i) for i in truth]
+base_vectors_list = list(base_vectors_with_attributes["vector"])
+base_vectors_list = [list(i) for i in base_vectors_list]
+query_vectors_list = list(query_vectors_with_attributes["vector"])
+query_vectors_list = [list(i) for i in query_vectors_list]
 
-ground_truth = get_ground_truths(query_vectors, base_vectors, indices, 100)
+base_vectors = base_vectors_list
+query_vectors = query_vectors_list
+ground_truth = truth
+
+# dummy_attr_filtering = list(np.arange(len(base_vectors)))
+dummy_attr_filtering1 = list(base_vectors_with_attributes["attr1"])
+dummy_attr_filtering2 = list(base_vectors_with_attributes["attr2"])
+dummy_attr_filtering3 = list(base_vectors_with_attributes["attr3"])
+
+query_attribute_1 = list(query_vectors_with_attributes["attr1"])
+query_attribute_2 = list(query_vectors_with_attributes["attr2"])
+query_attribute_3 = list(query_vectors_with_attributes["attr3"])
+
+# ATTRIBUTE_THRESHOLD = 30
+
+# indices = get_indices(dummy_attr_filtering, ATTRIBUTE_THRESHOLD)
+
+# ground_truth = get_ground_truths(query_vectors, base_vectors, indices, 100)
 
 vector_ids = list(range(len(base_vectors)))
 
@@ -84,7 +121,7 @@ experiment_results = []
 
 
 
-def run_experiment(run_ivf, m, ef, lim):
+def run_experiment(run_ivf, m, ef, lim, query_attr1, query_attr2, query_attr3):
     experiment_data = {
         "experiment_type": "IVF" if run_ivf else "HNSW",
         "m": m,
@@ -111,26 +148,30 @@ def run_experiment(run_ivf, m, ef, lim):
     collection_name = COLLECTION_NAME
     field1 = FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=False)
     field2 = FieldSchema(name="feature", dtype=DataType.FLOAT_VECTOR, dim=dim)
-    field3 = FieldSchema(name="dummy_attr_filtering", dtype=DataType.INT64, dim=dim)
-    schema = CollectionSchema(fields=[field1, field2, field3], description="SIFT10K dataset collection")
+    field3 = FieldSchema(name="dummy_attr_filtering1", dtype=DataType.BOOL, dim=dim)
+    field4 = FieldSchema(name="dummy_attr_filtering2", dtype=DataType.BOOL, dim=dim)
+    field5 = FieldSchema(name="dummy_attr_filtering3", dtype=DataType.BOOL, dim=dim)
+    schema = CollectionSchema(fields=[field1, field2, field3, field4, field5], description="SIFT10K dataset collection")
 
     # print("Create collection SIFT10K")
     collection = Collection(COLLECTION_NAME, schema)
 
     # Insert the base vectors into the collection
 
-    def insert_in_batches(collection, ids, vectors, dummy_attr_filtering, batch_size=10000):
+    def insert_in_batches(collection, ids, vectors, dummy_attr_filtering1, dummy_attr_filtering2, dummy_attr_filtering3, batch_size=10000):
         total = len(vectors)
         for i in range(0, total, batch_size):
             batch_ids = ids[i:i + batch_size]
             batch_vectors = vectors[i:i + batch_size]
-            dummy_attr_filter = dummy_attr_filtering[i:i + batch_size]
-            mr = collection.insert([batch_ids, batch_vectors, dummy_attr_filter])
+            dummy_attr_filter_1 = dummy_attr_filtering1[i:i + batch_size]
+            dummy_attr_filter_2 = dummy_attr_filtering2[i:i + batch_size]
+            dummy_attr_filter_3 = dummy_attr_filtering3[i:i + batch_size]
+            mr = collection.insert([batch_ids, batch_vectors, dummy_attr_filter_1, dummy_attr_filter_2, dummy_attr_filter_3])
             print(i + batch_size)
             print(f"Inserted batch {i // batch_size + 1}/{(total + batch_size - 1) // batch_size}")
 
     # Insert data
-    insert_in_batches(collection, vector_ids, base_vectors, dummy_attr_filtering)
+    insert_in_batches(collection, vector_ids, base_vectors, dummy_attr_filtering1, dummy_attr_filtering2, dummy_attr_filtering3)
 
     # Define an index type and its parameters
     ivf_flat_params = {
@@ -181,11 +222,15 @@ def run_experiment(run_ivf, m, ef, lim):
         "metric_type": "L2",
         }
 
-    output_fields = ["dummy_attr_filtering"] 
+    output_fields = ["dummy_attr_filtering1", "dummy_attr_filtering2", "dummy_attr_filtering3"] 
 
-
+    query_results = []
     query_start_time = time.time()
-    query_results = collection.search(query_vectors, "feature", search_params, limit=lim, output_fields=output_fields, expr="dummy_attr_filtering >= {}".format(ATTRIBUTE_THRESHOLD))
+    for idx, (query_vector, attr1, attr2, attr3) in enumerate(zip(query_vectors, query_attr1, query_attr2, query_attr3)):
+        expr = f"dummy_attr_filtering1 == {attr1} and dummy_attr_filtering2 == {attr2} and dummy_attr_filtering3 == {attr3}"
+        query_result = collection.search([query_vector], "feature", search_params, limit=lim, output_fields=output_fields, expr=expr)
+        query_results.append(query_result[0])
+    # query_results = collection.search(query_vectors, "feature", search_params, limit=lim, output_fields=output_fields, expr="dummy_attr_filtering1 == True and dummy_attr_filtering2 == True and dummy_attr_filtering3 == True")
     end_time = time.time()
 
     queries_count = len(query_vectors)
@@ -202,7 +247,7 @@ def run_experiment(run_ivf, m, ef, lim):
     for i in range(len(query_results)):
         query_result = query_results[i]
         # print(query_result)
-        ground_truth_ids = ground_truth[i]
+        ground_truth_ids = ground_truth[i][:lim]
         retrieved_ids = [hit.id for hit in query_result]  # Consider only the top R results
 
         relevant_retrieved = len(set(ground_truth_ids).intersection(retrieved_ids))
@@ -228,13 +273,17 @@ def run_experiment(run_ivf, m, ef, lim):
     utility.drop_collection(COLLECTION_NAME)
 
 
-run_experiment(run_ivf=True, m=None, ef=None, lim=1)
-run_experiment(run_ivf=True, m=None, ef=None, lim=10)
-run_experiment(run_ivf=True, m=None, ef=None, lim=100)
+run_experiment(run_ivf=True, m=None, ef=None, lim=1, query_attr1=query_attribute_1, query_attr2=query_attribute_2, query_attr3=query_attribute_3)
+restart_milvus_container('milvus-standalone')
+run_experiment(run_ivf=True, m=None, ef=None, lim=10, query_attr1=query_attribute_1, query_attr2=query_attribute_2, query_attr3=query_attribute_3)
+restart_milvus_container('milvus-standalone')
+run_experiment(run_ivf=True, m=None, ef=None, lim=100, query_attr1=query_attribute_1, query_attr2=query_attribute_2, query_attr3=query_attribute_3)
+restart_milvus_container('milvus-standalone')
 for m in m_values:
     for ef in ef_construction_values:
         for lim in limit_values:
-            run_experiment(run_ivf=False, m=m, ef=ef, lim=lim)
+            run_experiment(run_ivf=False, m=m, ef=ef, lim=lim, query_attr1=query_attribute_1, query_attr2=query_attribute_2, query_attr3=query_attribute_3)
+            restart_milvus_container('milvus-standalone')
 
 
 def write_to_csv(file_name, data):
