@@ -5,18 +5,20 @@ from qdrant_client.http.models import PointStruct
 import numpy as np
 import random, time, utils, datetime, csv
 import pandas as pd
+from dotenv import load_dotenv
+import os
 
 def setup_client():
-    qdrantClient = QdrantClient(host='localhost', port=6333, timeout=10000000)
+    qdrantClient = QdrantClient(host=os.getenv('QDRANT_URL'), port=os.getenv('QDRANT_PORT'), timeout=10000000)
     return qdrantClient
 
 def read_dataset():
     # base_vectors = utils.read_fvecs("../../dataset/siftsmall/siftsmall_base.fvecs")
     # query_vectors = utils.read_fvecs("../../dataset/siftsmall/siftsmall_query.fvecs")
     # knn_groundtruth = utils.read_ivecs("../../dataset/siftsmall/siftsmall_groundtruth.ivecs")
-    base_vectors = utils.read_fvecs("../../dataset/sift/sift_base.fvecs")
-    query_vectors = utils.read_fvecs("../../dataset/sift/sift_query.fvecs")
-    knn_groundtruth = utils.read_ivecs("../../dataset/sift/sift_groundtruth.ivecs")
+    base_vectors = utils.read_fvecs(os.getenv('BASE_VECTORS_PATH'))
+    query_vectors = utils.read_fvecs(os.getenv('QUERY_VECTORS_PATH'))
+    knn_groundtruth = utils.read_ivecs(os.getenv('GROUND_TRUTH_PATH'))
     return base_vectors, query_vectors, knn_groundtruth
 
 def create_collection(qdrantClient, collection_name, ef_construct, m):
@@ -71,20 +73,21 @@ def search_queries(query_vectors, qdrantClient, collection_name, ef, k):
 
     return result_ids
 
-def print_metrics(ef_construct, m, ef, k, qps, recall, file_name, time_span_insert, time_span_search):
+def print_metrics(ef_construct, m, ef, k, qps, recall, file_name, time_span_insert, time_span_search, timestamp):
     with open(file_name,'a') as fd:
-        fd.write(f'{ef_construct}, {m}, {ef}, {k}, {qps}, {recall}, {time_span_insert}, {time_span_search}\n')
+        fd.write(f'{ef_construct}, {m}, {ef}, {k}, {qps}, {recall}, {time_span_insert}, {time_span_search}, {timestamp}\n')
 
 
 def main():
+    load_dotenv()
     ef_construct_values = [64, 128, 256, 512]
     m_values = [8, 16, 32, 64]
     ef_values = [64, 128, 256, 512]
 
     # Create csv file
     current_date = datetime.datetime.now().strftime("%d_%m_%y_%H:%M")
-    headers = ["ef_construct", "m", "ef", "k", "qps", "recall", "time_span_insert", "time_span_search"]
-    file_name = f"qdrant{current_date}.csv"
+    headers = ["ef_construct", "m", "ef", "k", "qps", "recall", "time_span_insert", "time_span_search", "time_span_points", "timestamp"]
+    file_name = f"qdrant_ann{current_date}.csv"
     # print(datetime)
 
     with open(file_name, mode='w', newline='') as file:
@@ -130,7 +133,7 @@ def main():
                     qps = len(queryV) / time_span_search
                     recall = true_positives/n_classified
 
-                    print_metrics(ef_construct, m, ef, k, qps, recall, file_name, time_span_insert, time_span_search)
+                    print_metrics(ef_construct, m, ef, k, qps, recall, file_name, time_span_insert, time_span_search, datetime.datetime.now().strftime("%d_%m_%y_%H:%M"))
 
 
 

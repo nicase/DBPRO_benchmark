@@ -5,22 +5,24 @@ from qdrant_client.http.models import PointStruct
 import numpy as np
 import random, time, utils, datetime, csv, pickle
 import pandas as pd
+from dotenv import load_dotenv
+import os
 
 def setup_client():
-    qdrantClient = QdrantClient(host='localhost', port=6333, timeout=10000000)
+    qdrantClient = QdrantClient(host=os.getenv('QDRANT_URL'), port=os.getenv('QDRANT_PORT'), timeout=10000000)
     return qdrantClient
 
 def read_dataset():
     # base_vectors = utils.read_fvecs("../../dataset/siftsmall/siftsmall_base.fvecs")
     # query_vectors = utils.read_fvecs("../../dataset/siftsmall/siftsmall_query.fvecs")
     # knn_groundtruth = utils.read_ivecs("../../dataset/siftsmall/siftsmall_groundtruth.ivecs")
-    with open('query_vectors_with_attributes.pkl', 'rb') as f:
+    with open(os.getenv('PICKLE_BASE_VECTORS_PATH'), 'rb') as f:
         query_vectors_with_attributes = pickle.load(f)
 
-    with open('base_vectors_with_attributes.pkl', 'rb') as f:
+    with open(os.getenv('PICKLE_QUERY_VECTORS_PATH'), 'rb') as f:
         base_vectors_with_attributes = pickle.load(f)
 
-    with open('calculated_truth.pkl', 'rb') as f:
+    with open(os.getenv('PICKLE_GROUND_TRUTH_PATH'), 'rb') as f:
         truth = pickle.load(f)
 
     return base_vectors_with_attributes, query_vectors_with_attributes, truth
@@ -109,9 +111,10 @@ def print_metrics(ef_construct, m, ef, k, qps, recall, file_name, time_span_inse
 
 
 def main():
-    ef_construct_values = [64, 256]
-    m_values = [8, 32]
-    ef_values = [64, 256]
+    load_dotenv()
+    ef_construct_values = [64, 128, 256, 512]
+    m_values = [8, 16, 32, 64]
+    ef_values = [64, 128, 256, 512]
 
     # Create csv file
     current_date = datetime.datetime.now().strftime("%d_%m_%y_%H:%M")
