@@ -16,13 +16,13 @@ def read_dataset():
     # base_vectors = utils.read_fvecs("../../dataset/siftsmall/siftsmall_base.fvecs")
     # query_vectors = utils.read_fvecs("../../dataset/siftsmall/siftsmall_query.fvecs")
     # knn_groundtruth = utils.read_ivecs("../../dataset/siftsmall/siftsmall_groundtruth.ivecs")
-    with open(os.getenv('PICKLE_QUERY_VECTORS_PATH'), 'rb') as f:
+    with open(os.getenv('PICKLE_QUERY_VECTORS_PATH_RANGE'), 'rb') as f:
         query_vectors_with_attributes = pickle.load(f)
 
-    with open(os.getenv('PICKLE_BASE_VECTORS_PATH'), 'rb') as f:
+    with open(os.getenv('PICKLE_BASE_VECTORS_PATH_RANGE'), 'rb') as f:
         base_vectors_with_attributes = pickle.load(f)
 
-    with open(os.getenv('PICKLE_GROUND_TRUTH_PATH'), 'rb') as f:
+    with open(os.getenv('PICKLE_GROUND_TRUTH_PATH_RANGE'), 'rb') as f:
         truth = pickle.load(f)
 
     return base_vectors_with_attributes, query_vectors_with_attributes, truth
@@ -59,55 +59,33 @@ def insert_values(n, batch_points, qdrantClient, collection_name):
             points=batch_points_i
         )
 
-def search_queries(query_vectors_with_attributes, qdrantClient, collection_name, ef, k):
+def search_queries(query_vectors, qdrantClient, collection_name, threshold, ef):
     print(f'Search function starting')
     result_ids = []
-    for i,elem in query_vectors_with_attributes.iterrows():
-        print(f'Progress: {i}/{len(query_vectors_with_attributes)}', end='\r')
+    for i,elem in query_vectors.iterrows():
+        print(f'Progress: {i}/{len(query_vectors)}', end='\r')
         # print(elem)
         vec = elem["vector"]
-        attr1 = elem["attr1"]
-        attr2 = elem["attr2"]
-        attr3 = elem["attr3"]
         # print(attr1, attr2, attr3)
         search_result = qdrantClient.search(
             collection_name=collection_name,
             search_params=models.SearchParams(
                 hnsw_ef=ef,
                 exact=False
-            ), 
-            query_vector=vec, 
-            query_filter=models.Filter(
-                # must = AND
-                must=[
-                    models.FieldCondition(
-                        key="attr1",
-                        match=models.MatchValue(
-                            value=attr1,
-                        ),
-                    ),
-                    models.FieldCondition(
-                        key="attr2",
-                        match=models.MatchValue(
-                            value=attr2,
-                        ),
-                    ),
-                    models.FieldCondition(
-                        key="attr3",
-                        match=models.MatchValue(
-                            value=attr3,
-                        ),
-                    )
-                ]
             ),
-            limit=k
+            query_vector=vec, 
+            score_threshold = threshold,
+            limit=1000000
         )
+        # print(f'Found {len(search_result)} ids under threshold')
+        # print(np.array([elem.id for elem in search_result]))
         result_ids.append([elem.id for elem in search_result])
 
     return result_ids
-def print_metrics(ef_construct, m, ef, k, qps, recall, file_name, time_span_insert, time_span_search, time_span_points, timestamp):
+
+def print_metrics(ef_construct, m, ef, qps, recall, file_name, time_span_insert, time_span_search, time_span_points, timestamp):
     with open(file_name,'a') as fd:
-        fd.write(f'{ef_construct}, {m}, {ef}, {k}, {qps}, {recall}, {time_span_insert}, {time_span_search}, {time_span_points}, {timestamp}\n')
+        fd.write(f'{ef_construct}, {m}, {ef}, {qps}, {recall}, {time_span_insert}, {time_span_search}, {time_span_points}, {timestamp}\n')
 
 
 def main():
@@ -118,8 +96,8 @@ def main():
 
     # Create csv file
     current_date = datetime.datetime.now().strftime("%d_%m_%y_%H:%M")
-    headers = ["ef_construct", "m", "ef", "k", "qps", "recall", "time_span_insert", "time_span_search", "time_span_points", "timestamp"]
-    file_name = f"qdrant_attribute_filtering{current_date}.csv"
+    headers = ["ef_construct", "m", "ef", "qps", "recall", "time_span_insert", "time_span_search", "time_span_points", "timestamp"]
+    file_name = f"qdrant_range_{current_date}.csv"
     # print(datetime)
 
     with open(file_name, mode='w', newline='') as file:
@@ -130,6 +108,8 @@ def main():
 
     qdrantClient = setup_client()
     baseV, queryV, groundTruthV = read_dataset()
+    print([len(elem) for elem in groundTruthV])
+    # return
     for ef_construct in ef_construct_values:
         for m in m_values:
             for ef in ef_values:
@@ -137,14 +117,14 @@ def main():
                 print(f'ef_construct: {ef_construct} \nm: {m}\nef: {ef}')
                 print("-------------------------------------------------------------------------------------------")
 
-                collection_name = "attribute_filtering_1M"
+                collection_name = "range_10K"
                 create_collection(qdrantClient, collection_name, ef_construct, m)
 
                 print("---------------------------------- INSERTING VALUES ----------------------------------")
                 
                 print("Creating Points")
                 start_time = time.time()
-                batch_points = [PointStruct(id=i, vector=elem["vector"], payload= {"attr1": elem["attr1"], "attr2": elem["attr2"], "attr3": elem["attr3"]}) for i, elem in baseV.iterrows()]
+                batch_points = [PointStruct(id=i, vector=elem["vector"]) for i, elem in baseV.iterrows()]
                 end_time = time.time()
                 time_span_points = end_time - start_time
 
@@ -155,24 +135,23 @@ def main():
                 print("-------------------------------------------------------------------------------------")
 
                 # truth = utils.top_k_neighbors(queryV, baseV, k=100, function='euclidean', filtering=False) 
-                k_values = [1, 10, 100]
-                for k in k_values:
-                    start_time_search = time.time()
-                    result_ids = search_queries(queryV, qdrantClient, collection_name, ef, k)
-                    end_time_search = time.time()
-                    time_span_search = end_time_search - start_time_search
 
-                    true_positives = 0
-                    n_classified = 0
-                    for i,elem in enumerate(result_ids):
-                        true_positives_iter = len(np.intersect1d(groundTruthV[i][:k], result_ids[i]))
-                        true_positives += true_positives_iter
-                        n_classified += len(elem)
+                start_time_search = time.time()
+                result_ids = search_queries(queryV, qdrantClient, collection_name, 600, ef)
+                end_time_search = time.time()
+                time_span_search = end_time_search - start_time_search
 
-                    qps = len(queryV) / time_span_search
-                    recall = true_positives/n_classified
+                true_positives = 0
+                n_classified = 0
+                for i,elem in enumerate(result_ids):
+                    true_positives_iter = len(np.intersect1d(groundTruthV[i], result_ids[i]))
+                    true_positives += true_positives_iter
+                    n_classified += len(elem)
 
-                    print_metrics(ef_construct, m, ef, k, qps, recall, file_name, time_span_insert, time_span_search, time_span_points, datetime.datetime.now().strftime("%d_%m_%y_%H:%M"))
+                qps = len(queryV) / time_span_search
+                recall = true_positives/n_classified
+
+                print_metrics(ef_construct, m, ef, qps, recall, file_name, time_span_insert, time_span_search, time_span_points, datetime.datetime.now().strftime("%d_%m_%y_%H:%M"))
 
 
 
