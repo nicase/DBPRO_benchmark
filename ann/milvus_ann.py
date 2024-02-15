@@ -61,7 +61,7 @@ COLLECTION_NAME = "SIFT_EXPERIMENT_ANN"
 m_values = [8, 16, 32, 64]
 ef_construction_values = [64, 128, 256, 512]
 limit_values = [1, 10, 100]
-ef_search_values = [64, 128, 256, 512]
+ef_search_values = [128, 256, 512]
 
 run_ivf = True
 
