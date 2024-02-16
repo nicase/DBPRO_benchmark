@@ -1,6 +1,10 @@
-container_id="349e7ccd7e68b8791385e59818f0e601b9b1be99140a13619bcd3a19c5ddbba1"
+container_name="qdrant_container"
+memory_limit="512m"
+cpu_limit="0.5"
 
-docker start $container_id
+docker run -d --name "$container_name" --memory="$memory_limit" --cpus="$cpu_limit" qdrant/qdrant
+
+container_id=$(docker ps -aqf "name=$container_name")
 
 python3 attribute_filtering/qdrant_attribute_filtering_2.py &
 
@@ -14,4 +18,4 @@ while ps -p $python_pid > /dev/null; do
 
 done
 
-docker stop $container_id
+docker rm -f "$container_id"
