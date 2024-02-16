@@ -1,3 +1,4 @@
+docker-compose -f docker-compose-mlv.yml up -d
 container_id="milvus-standalone"
 
 python3 attribute_filtering/milvus_attribute_filtering.py &
@@ -11,3 +12,4 @@ while ps -p $python_pid > /dev/null; do
     sleep 5
 
 done
+docker-compose -f docker-compose-mlv.yml down

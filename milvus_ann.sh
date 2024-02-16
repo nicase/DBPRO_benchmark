@@ -1,3 +1,5 @@
+docker-compose -f docker-compose-mlv.yml up -d
+
 container_id="milvus-standalone"
 
 python3 ann/milvus_ann.py &
@@ -11,3 +13,4 @@ while ps -p $python_pid > /dev/null; do
     sleep 5
 
 done
+docker-compose -f docker-compose-mlv.yml down
