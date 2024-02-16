@@ -2,6 +2,8 @@ from pymilvus import Collection, CollectionSchema, FieldSchema, DataType, connec
 import numpy as np
 import csv
 import time
+from dotenv import load_dotenv
+import os
 from pymilvus import (
     connections,
     utility,
@@ -65,7 +67,7 @@ def get_ground_truths(query_vectors, base_vectors, filtered_indices, top_n=100):
 
 
 # Connect to Milvus server
-client = connections.connect(host='localhost', port='19530')
+client = connections.connect(host=os.getenv('MILVUS_URL'), port=os.getenv('MILVUS_PORT'))
 
 # Read the SIFT datasets
 # base_vectors = list(fvecs_read('siftsmall/siftsmall_base.fvecs'))
@@ -74,11 +76,14 @@ client = connections.connect(host='localhost', port='19530')
 # ground_truth = list(ivecs_read('sift/sift_groundtruth.ivecs'))
 
 import pickle
-with open('base_vectors_with_attributes.pkl', 'rb') as f:
+#with open('base_vectors_with_attributes.pkl', 'rb') as f:
+with open(os.getenv('PICKLE_BASE_VECTORS_PATH'), 'rb') as f:
     base_vectors_with_attributes = pickle.load(f)
-with open('query_vectors_with_attributes.pkl', 'rb') as f:
+#with open('query_vectors_with_attributes.pkl', 'rb') as f:
+with open(os.getenv('PICKLE_QUERY_VECTORS_PATH'), 'rb') as f:
     query_vectors_with_attributes = pickle.load(f)    
-with open('calculated_truth.pkl', 'rb') as f:
+#with open('calculated_truth.pkl', 'rb') as f:
+with open(os.getenv('PICKLE_GROUND_TRUTH_PATH'), 'rb') as f:
     truth = pickle.load(f)
 
 
@@ -113,6 +118,7 @@ COLLECTION_NAME = "SIFT_EXPERIMENT_ATTRIBUTE_FILTERING"
 
 m_values = [8, 16, 32, 64]
 ef_construction_values = [64, 128, 256, 512]
+ef_search_values = [128, 256, 512]
 limit_values = [1, 10, 100]
 
 run_ivf = True
@@ -121,17 +127,19 @@ experiment_results = []
 
 
 
-def run_experiment(run_ivf, m, ef, lim, query_attr1, query_attr2, query_attr3):
+def run_experiment(run_ivf, m, ef, ef_search, lim, query_attr1, query_attr2, query_attr3):
     experiment_data = {
         "experiment_type": "IVF" if run_ivf else "HNSW",
         "m": m,
         "ef": ef,
+        "ef_search": ef_search,
         "lim": lim
     }
     if not run_ivf:
         print("HNSW")
         print("m : ", m)
-        print("ef : ", ef)
+        print("ef_construction_values : ", ef)
+        print("ef : ", ef_search)
         print("lim : ", lim)
     else:
         print("IVF")
@@ -220,6 +228,9 @@ def run_experiment(run_ivf, m, ef, lim, query_attr1, query_attr2, query_attr3):
         search_params = {
         "offset":0,
         "metric_type": "L2",
+        "params": {
+            "ef": ef_search
+            },
         }
 
     output_fields = ["dummy_attr_filtering1", "dummy_attr_filtering2", "dummy_attr_filtering3"] 
@@ -273,17 +284,18 @@ def run_experiment(run_ivf, m, ef, lim, query_attr1, query_attr2, query_attr3):
     utility.drop_collection(COLLECTION_NAME)
 
 
-run_experiment(run_ivf=True, m=None, ef=None, lim=1, query_attr1=query_attribute_1, query_attr2=query_attribute_2, query_attr3=query_attribute_3)
+run_experiment(run_ivf=True, m=None, ef=None, ef_search=None, lim=1, query_attr1=query_attribute_1, query_attr2=query_attribute_2, query_attr3=query_attribute_3)
 restart_milvus_container('milvus-standalone')
-run_experiment(run_ivf=True, m=None, ef=None, lim=10, query_attr1=query_attribute_1, query_attr2=query_attribute_2, query_attr3=query_attribute_3)
+run_experiment(run_ivf=True, m=None, ef=None, ef_search=None, lim=10, query_attr1=query_attribute_1, query_attr2=query_attribute_2, query_attr3=query_attribute_3)
 restart_milvus_container('milvus-standalone')
-run_experiment(run_ivf=True, m=None, ef=None, lim=100, query_attr1=query_attribute_1, query_attr2=query_attribute_2, query_attr3=query_attribute_3)
+run_experiment(run_ivf=True, m=None, ef=None, ef_search=None, lim=100, query_attr1=query_attribute_1, query_attr2=query_attribute_2, query_attr3=query_attribute_3)
 restart_milvus_container('milvus-standalone')
 for m in m_values:
     for ef in ef_construction_values:
-        for lim in limit_values:
-            run_experiment(run_ivf=False, m=m, ef=ef, lim=lim, query_attr1=query_attribute_1, query_attr2=query_attribute_2, query_attr3=query_attribute_3)
-            restart_milvus_container('milvus-standalone')
+        for ef_search in ef_search_values:
+            for lim in limit_values:
+                run_experiment(run_ivf=False, m=m, ef=ef, ef_search=ef_search, lim=lim, query_attr1=query_attribute_1, query_attr2=query_attribute_2, query_attr3=query_attribute_3)
+                restart_milvus_container('milvus-standalone')
 
 
 def write_to_csv(file_name, data):

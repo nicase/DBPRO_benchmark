@@ -2,6 +2,8 @@ from pymilvus import Collection, CollectionSchema, FieldSchema, DataType, connec
 import numpy as np
 import csv
 import time
+from dotenv import load_dotenv
+import os
 from pymilvus import (
     connections,
     utility,
@@ -38,13 +40,18 @@ def fvecs_read(fname):
 
 
 # Connect to Milvus server
-client = connections.connect(host='localhost', port='19530')
+client = connections.connect(host=os.getenv('MILVUS_URL'), port=os.getenv('MILVUS_PORT'))
+#client = connections.connect(host='localhost', port='19530')
 
 # Read the SIFT datasets
-base_vectors = list(fvecs_read('sift/sift_base.fvecs'))
-query_vectors = list(fvecs_read('sift/sift_query.fvecs'))
-training_vectors = list(fvecs_read('sift/sift_learn.fvecs'))
-ground_truth = list(ivecs_read('sift/sift_groundtruth.ivecs'))
+#base_vectors = list(fvecs_read('siftsmall/siftsmall_base.fvecs'))
+base_vectors = list(fvecs_read(os.getenv('BASE_VECTORS_PATH')))
+# query_vectors = list(fvecs_read('siftsmall/siftsmall_query.fvecs'))
+# training_vectors = list(fvecs_read('sift/sift_learn.fvecs'))
+# ground_truth = list(ivecs_read('siftsmall/siftsmall_groundtruth.ivecs'))
+query_vectors = list(fvecs_read(os.getenv('QUERY_VECTORS_PATH')))
+ground_truth = list(ivecs_read(os.getenv('GROUND_TRUTH_PATH')))
+
 
 vector_ids = list(range(len(base_vectors)))
 
@@ -54,22 +61,25 @@ COLLECTION_NAME = "SIFT_EXPERIMENT_ANN"
 m_values = [8, 16, 32, 64]
 ef_construction_values = [64, 128, 256, 512]
 limit_values = [1, 10, 100]
+ef_search_values = [128, 256, 512]
 
 run_ivf = True
 
 experiment_results = []
 
-def run_experiment(run_ivf, m, ef, lim):
+def run_experiment(run_ivf, m, ef, ef_search, lim):
     experiment_data = {
         "experiment_type": "IVF" if run_ivf else "HNSW",
         "m": m,
         "ef": ef,
+        "ef_search": ef_search,
         "lim": lim
     }
     if not run_ivf:
         print("HNSW")
         print("m : ", m)
-        print("ef : ", ef)
+        print("ef_construction_values : ", ef)
+        print("ef : ", ef_search)
         print("lim : ", lim)
     else:
         print("IVF")
@@ -146,6 +156,9 @@ def run_experiment(run_ivf, m, ef, lim):
         search_params = {
         "offset":0,
         "metric_type": "L2",
+        "params": {
+            "ef": ef_search
+            },
         }
     query_start_time = time.time()
     query_results = collection.search(query_vectors, "feature", search_params, limit=lim)
@@ -189,19 +202,20 @@ def run_experiment(run_ivf, m, ef, lim):
     utility.drop_collection(COLLECTION_NAME)
 
 
-run_experiment(run_ivf=True, m=None, ef=None, lim=1)
+run_experiment(run_ivf=True, m=None, ef=None, ef_search=None, lim=1)
 restart_milvus_container('milvus-standalone')
-run_experiment(run_ivf=True, m=None, ef=None, lim=10)
+run_experiment(run_ivf=True, m=None, ef=None, ef_search=None, lim=10)
 restart_milvus_container('milvus-standalone')
-run_experiment(run_ivf=True, m=None, ef=None, lim=100)
+run_experiment(run_ivf=True, m=None, ef=None, ef_search=None, lim=100)
 restart_milvus_container('milvus-standalone')
 for m in m_values:
     for ef in ef_construction_values:
-        for lim in limit_values:
-            if m == 8 and ef == 64 and lim == 1:
-                continue
-            run_experiment(run_ivf=False, m=m, ef=ef, lim=lim)
-            restart_milvus_container('milvus-standalone')
+        for ef_search in ef_search_values:
+            for lim in limit_values:
+                if m == 8 and ef == 64 and lim == 1:
+                    continue
+                run_experiment(run_ivf=False, m=m, ef=ef, ef_search=ef_search, lim=lim)
+                restart_milvus_container('milvus-standalone')
 
 
 def write_to_csv(file_name, data):
