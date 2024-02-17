@@ -3,7 +3,7 @@
 container_name="weaviate-1"
 port_mapping="6333:6333"
 
-docker compose up -d
+docker-compose up -d
 container_id=$(docker ps -aqf "name=$container_name")
 container_ip_addr=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $container_id)
 container_port=$(docker port "$container_id" | grep -m 1 "tcp" | awk '{print $NF}' | cut -d ':' -f 2)
@@ -21,5 +21,6 @@ while ps -p $python_pid > /dev/null; do
     docker stats "$container_id" --no-stream --format "{{.CPUPerc}},{{.MemUsage}},$timestamp"    
     sleep 5
 done
-docker rm -f "$container_id"
+docker-compose down
 mv .env.bk .env
+docker rm -f "$container_id"
