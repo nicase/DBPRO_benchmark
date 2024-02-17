@@ -1,26 +1,28 @@
 import weaviate
+import os
+from os import getenv
 import utils
 import pandas as pd
 import numpy as np
 import uuid
 import time
 import csv
+from dotenv import load_dotenv
 
-client = weaviate.Client("172.21.0.2:8080")  # Replace the URL with that of your Weaviate instance
-base_vectors = pd.DataFrame({'vector' : utils.read_fvecs('/data-ssd/dimitrios/DBPRO_benchmark/data/sift/sift_base.fvecs').tolist()})
-query_vectors = pd.DataFrame({'vector' : utils.read_fvecs('/data-ssd/dimitrios/DBPRO_benchmark/data/sift/sift_query.fvecs').tolist()})
-#truth = pd.DataFrame(utils.read_ivecs('/Users/metehan/Desktop/datasets/small/siftsmall_groundtruth.ivecs'))
+load_dotenv()
+url = f"http://{os.getenv('WEAVIATE_URL')}:{os.getenv('WEAVIATE_PORT')}"
+print(f"Connecting to {url}...")
+client = weaviate.Client(url)  # Replace the URL with that of your Weaviate instance
+base_vectors = pd.DataFrame({'vector': utils.read_fvecs(os.getenv('BASE_VECTORS_PATH')).tolist()})
+query_vectors = pd.DataFrame({'vector': utils.read_fvecs(os.getenv('QUERY_VECTORS_PATH')).tolist()})
+
 truth = utils.top_k_neighbors(query_vectors, base_vectors, k=100, function='euclidean', filtering=False)
+k_number = [1, 10, 100]
 
 ef = [64]
 maxConnections = [8, 64]
 efConstruction = [64, 256]
 k_values = [1,10,100]
-
-""" client = weaviate.Client("172.21.0.2:8080")  # Replace the URL with that of your Weaviate instance
-base_vectors = pd.DataFrame({'vector': utils.read_fvecs("/data-ssd/dimitrios/DBPRO_benchmark/data/sift/sift_base.fvecs").tolist()})
-query_vectors = pd.DataFrame({'vector': utils.read_fvecs("/data-ssd/dimitrios/DBPRO_benchmark/data/sift/sift_query.fvecs").tolist()})
-truth = 0 """
 
 def generate_uuid():
     return str(uuid.uuid4())

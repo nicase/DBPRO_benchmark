@@ -8,6 +8,7 @@ docker run -d --name "$container_name" -p $port_mapping --memory="$memory_limit"
 container_id=$(docker ps -aqf "name=$container_name")
 
 container_port=$(docker port "$container_id" | grep "tcp" | awk '{print $NF}' | cut -d ':' -f 2)
+mv .env .env.bk
 echo "QDRANT_PORT=\"$container_port\"" >> .env
 
 python3 attribute_filtering/qdrant_attribute_filtering_2.py &
@@ -23,3 +24,4 @@ while ps -p $python_pid > /dev/null; do
 done
 
 docker rm -f "$container_id"
+mv .env.bk .env
