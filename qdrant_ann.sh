@@ -8,7 +8,7 @@ docker run -d --name "$container_name" -p $port_mapping --memory="$memory_limit"
 container_id=$(docker ps -aqf "name=$container_name")
 
 container_port=$(docker port "$container_id" | grep "tcp" | awk '{print $NF}' | cut -d ':' -f 2)
-mv .env .env.bk
+cp .env .env.bk
 echo "QDRANT_PORT=\"$container_port\"" >> .env
 
 python3 ann/qdrant_ann.py &
