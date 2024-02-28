@@ -26,7 +26,7 @@ num_rows = len(query_vectors)
 base_vectors.to_pickle('base_vectors_range.pkl')
 query_vectors.to_pickle('query_vectors_range.pkl')
 
-truth = utils.range_truth(query_vectors, base_vectors, threshold=600)
+truth = utils.range_truth(query_vectors, base_vectors, threshold=389.18)
 
 with open('calculated_truth_range.pkl', 'wb') as file:
     pickle.dump(truth, file)

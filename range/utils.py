@@ -69,15 +69,6 @@ def range_truth(query_vectors, base_vectors, threshold = 300, function='euclidea
             distance = calculate_distance(vector1, vector2, similarity_function='euclidean')
             distances_df.at[i, j] = distance
 
-    # x = 60 
-
-    # sorted_values = distances_df.values.reshape(-1)
-    # num_elements_to_select = int((x / 100) * len(sorted_values))
-
-    # sorted_values.sort()
-
-    # top_x_percent_values = sorted_values[-num_elements_to_select:]
-    # return top_x_percent_values
     mask = distances_df < threshold
     ids = np.empty((len(query_vectors),), dtype=object)
     for i in range(len(query_vectors)):
@@ -85,3 +76,16 @@ def range_truth(query_vectors, base_vectors, threshold = 300, function='euclidea
 
 
     return ids
+
+def range_truth_iterative(query_vector, base_vectors, threshold=300, similarity_function='euclidean'):
+    ids_list = []
+
+    distances = []
+    for base_vector in base_vectors['vector']:
+        distance = calculate_distance(query_vector, base_vector, similarity_function)
+        distances.append(distance)
+    distances = np.array(distances)
+    ids = np.where(distances < threshold)[0]
+    ids_list.append(ids)
+
+    return ids_list
