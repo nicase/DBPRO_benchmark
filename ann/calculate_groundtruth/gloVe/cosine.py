@@ -18,10 +18,10 @@ def read_dataset():
 baseV, queryV, _ = read_dataset()
 
 # UNCOMMENT TO TEST (10K BASE VECS, 100 QUERY VECS)
-baseV = pd.DataFrame({'vector': baseV[:10000]})
-queryV = pd.DataFrame({'vector': queryV[:100]})
-# baseV = pd.DataFrame({'vector': baseV})
-# queryV = pd.DataFrame({'vector': queryV})
+# baseV = pd.DataFrame({'vector': baseV[:10000]})
+# queryV = pd.DataFrame({'vector': queryV[:100]})
+baseV = pd.DataFrame({'vector': baseV})
+queryV = pd.DataFrame({'vector': queryV})
 
 
 truth = utils.top_k_neighbors(queryV, baseV, function="cosine")
