@@ -5,9 +5,12 @@ from qdrant_client.http.models import PointStruct
 import numpy as np
 import random, time, utils
 import pandas as pd
+from dotenv import load_dotenv
+import os
+
 
 def setup_client():
-    qdrantClient = QdrantClient(host='localhost', port=6333, timeout=10000000)
+    qdrantClient = QdrantClient(host=os.getenv('QDRANT_URL'), port=os.getenv('QDRANT_PORT'), timeout=10000000)
     return qdrantClient
 
 def read_dataset():
@@ -101,6 +104,7 @@ def print_metrics(result_ids, nqueries, time_span, truth):
     print(f'Average recall: {true_positives/n_classified}')
 
 def main():
+    load_dotenv()
     qdrantClient = setup_client()
     baseV, queryV, groundTruthV = read_dataset()
 

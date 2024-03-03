@@ -154,7 +154,5 @@ def main():
                 print_metrics(ef_construct, m, ef, qps, recall, file_name, time_span_insert, time_span_search, time_span_points, datetime.datetime.now().strftime("%d_%m_%y_%H:%M"))
 
 
-
-
 if __name__ == "__main__":
     main()

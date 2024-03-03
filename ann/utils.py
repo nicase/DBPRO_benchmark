@@ -54,13 +54,20 @@ def calculate_distance(vector1, vector2, similarity_function='euclidean'):
         return np.linalg.norm(np.array(vector1) - np.array(vector2), ord=2)
     elif similarity_function == 'cosine':
         return np.dot(vector1, vector2) / (np.linalg.norm(vector1) * np.linalg.norm(vector2))
+    elif similarity_function == 'dot':
+        return np.dot(vector1, vector2)
     else:
         raise ValueError("Unsupported similarity function")
 
 def select_k_closest_elements(df, reference_vector, k, similarity_function='euclidean'):
     df = df.copy() 
     df['distance'] = df['vector'].apply(lambda v: calculate_distance(v, reference_vector, similarity_function))
-    result_df = df.nsmallest(k, 'distance').drop(columns=['distance'])
+    if similarity_function == 'euclidean':
+        result_df = df.nsmallest(k, 'distance').drop(columns=['distance'])
+    else:
+        result_df = df.nlargest(k, 'distance').drop(columns=['distance'])
+
+        
     return result_df.index.values
 
 
@@ -77,7 +84,7 @@ def top_k_neighbors(query_vectors, base_vectors, k=100, function='euclidean', fi
     '''
         Calculates the top k neighbors (ground truth), if filtering = True, we filter all boolean attributes as well.
     '''
-    if function != 'euclidean':
+    if function not in ['euclidean', 'cosine', 'dot']:
         raise NotImplementedError("Other distance functions are not yet implemented")
     
     top_k_indices = []
@@ -88,7 +95,7 @@ def top_k_neighbors(query_vectors, base_vectors, k=100, function='euclidean', fi
         else:
             filtered_df = base_vectors
              
-        result = select_k_closest_elements(filtered_df, elem["vector"], k)
+        result = select_k_closest_elements(filtered_df, elem["vector"], k, similarity_function=function)
         top_k_indices.append(result)
     
     return top_k_indices

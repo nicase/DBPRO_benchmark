@@ -1,1 +1,0 @@
-docker stats [contaioner name] --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}" > docker_data.txt

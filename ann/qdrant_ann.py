@@ -77,7 +77,6 @@ def print_metrics(ef_construct, m, ef, k, qps, recall, file_name, time_span_inse
     with open(file_name,'a') as fd:
         fd.write(f'{ef_construct}, {m}, {ef}, {k}, {qps}, {recall}, {time_span_insert}, {time_span_search}, {timestamp}\n')
 
-
 def main():
     load_dotenv()
     ef_construct_values = [64, 128, 256, 512]
