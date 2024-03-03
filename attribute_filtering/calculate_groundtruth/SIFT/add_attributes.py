@@ -35,5 +35,5 @@ query_vectors_with_attributes['attr1'] = [random.choice([True, False]) for _ in 
 query_vectors_with_attributes['attr2'] = [random.choice([True, False]) for _ in range(num_rows)]
 query_vectors_with_attributes['attr3'] = [random.choice([True, False]) for _ in range(num_rows)]
 
-base_vectors_with_attributes.to_pickle('BASEV_WITH_ATTRIBUTES.pkl')
-query_vectors_with_attributes.to_pickle('QUERYV_WITH_ATTRIBUTES.pkl')
+base_vectors_with_attributes.to_pickle('SIFT_BASEV_WITH_ATTRIBUTES.pkl')
+query_vectors_with_attributes.to_pickle('SIFT_QUERYV_WITH_ATTRIBUTES.pkl')
