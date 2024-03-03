@@ -1,4 +1,6 @@
 import numpy as np
+import h5py
+
 
 def read_fvecs(file_path):
     # Source: http://corpus-texmex.irisa.fr/
@@ -24,8 +26,6 @@ def read_fvecs(file_path):
     print(f'    The final shape of the loaded dataset {file_path.split("/")[-1]} is {final_dataframe.shape}.')
     return final_dataframe
 
-
-
 def read_ivecs(file_path):
     # Source: http://corpus-texmex.irisa.fr/
     # (From source):
@@ -48,6 +48,22 @@ def read_ivecs(file_path):
     final_dataframe = reshaped_bulk[:, 1:]
     print(f'    The final shape of the loaded dataset is {final_dataframe.shape}.')
     return final_dataframe
+
+
+def read_h5vs(file_path):
+    with h5py.File(file_path, 'r') as hdf_file:
+        ground_truth = []
+        query_vectors = []
+        base_vectors = []
+        for a in hdf_file['train']:
+            base_vectors.append(list(a))
+        for a in hdf_file['test']:
+            query_vectors.append(list(a))
+        for a in hdf_file['neighbors']:
+            ground_truth.append(list(a))
+    
+    return base_vectors, query_vectors, ground_truth
+
 
 def calculate_distance(vector1, vector2, similarity_function='euclidean'):
     if similarity_function == 'euclidean':
