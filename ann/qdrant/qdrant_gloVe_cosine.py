@@ -17,7 +17,7 @@ def read_dataset():
     base_vectors, query_vectors, _ = utils.read_h5vs(os.getenv("H5PY_GLOVE_PATH"))
     with open(os.getenv("ANN_gloVe_COSINE_GT_PATH"), 'rb') as f:
         groundTruth = pickle.load(f)
-    return base_vectors, query_vectors, _
+    return base_vectors, query_vectors, groundTruth
 
 def create_collection(qdrantClient, collection_name, ef_construct, m):
     vector_size = 100
