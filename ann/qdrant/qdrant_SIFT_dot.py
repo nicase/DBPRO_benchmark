@@ -85,7 +85,7 @@ def main():
     # Create csv file
     current_date = datetime.datetime.now().strftime("%d_%m_%y_%H:%M")
     headers = ["ef_construct", "m", "ef", "k", "qps", "recall", "time_span_insert", "time_span_search", "time_span_points", "timestamp"]
-    file_name = f"qdrant_ann{current_date}.csv"
+    file_name = f"qdrant_SIFT_dot_ann{current_date}.csv"
     # print(datetime)
 
     with open(file_name, mode='w', newline='') as file:
