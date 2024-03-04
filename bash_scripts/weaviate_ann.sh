@@ -1,6 +1,6 @@
 #!/bin/bash
 
-container_name="weaviate-1"
+container_name="weaviate"
 port_mapping="6333:6333"
 
 docker-compose up -d
@@ -8,7 +8,7 @@ container_id=$(docker ps -aqf "name=$container_name")
 container_ip_addr=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $container_id)
 container_port=$(docker port "$container_id" | grep -m 1 "tcp" | awk '{print $NF}' | cut -d ':' -f 2)
 cp .env .env.bk
-echo "WEAVIATE_URL=\"$container_ip_addr\"" >> .env
+#echo "WEAVIATE_URL=\"$container_ip_addr\"" >> .env
 echo "WEAVIATE_PORT=\"$container_port\"" >> .env
 
 python3 ann/weaviate_ann.py &
