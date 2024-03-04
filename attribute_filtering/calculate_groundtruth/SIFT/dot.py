@@ -9,9 +9,9 @@ import pickle
 import os
 from dotenv import load_dotenv
 
-with open('BASEV_WITH_ATTRIBUTES.pkl', 'rb') as f:
+with open('SIFT_BASEV_WITH_ATTRIBUTES.pkl', 'rb') as f:
         baseV = pickle.load(f)
-with open('QUERYV_WITH_ATTRIBUTES.pkl', 'rb') as f:
+with open('SIFT_QUERYV_WITH_ATTRIBUTES.pkl', 'rb') as f:
         queryV = pickle.load(f)
 
 truth = utils.top_k_neighbors(queryV, baseV, function="dot")
