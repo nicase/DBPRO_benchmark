@@ -95,6 +95,8 @@ def main():
 
     qdrantClient = setup_client()
     baseV, queryV, groundTruthV = read_dataset()
+    baseV = baseV[:10000]
+    queryV = queryV[:100]
     for ef_construct in ef_construct_values:
         for m in m_values:
             for ef in ef_values:
