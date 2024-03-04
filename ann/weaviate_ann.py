@@ -14,7 +14,7 @@ import pickle
 base_vectors = []
 query_vectors = []
 truth = []
-batch_size_value = 25000
+batch_size_value = 1
 
 distance_metrics = ['l2-squared', 'cosine', 'dot']
 ef = [64, 128, 256, 512]
@@ -102,6 +102,8 @@ def upload_data(class_name):
                 vector= base_vectors["vector"][i],
                 uuid= uuids_in_dataframe[i]
             )
+            print("One batch inserted")
+            break
 
 def create_flat_index(dataset_name, distance_metric_name):
     #with Flat index

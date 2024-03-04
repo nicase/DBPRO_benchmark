@@ -13,7 +13,7 @@ container_port=$(docker port "$container_id" | grep "tcp" | awk '{print $NF}' | 
 cp .env .env.bk
 echo "QDRANT_PORT=\"$container_port\"" >> .env
 
-python3 qdrant_gloVe_cosine.py &
+python3 ann/qdrant/qdrant_gloVe_cosine.py &
 
 python_pid=$!
 

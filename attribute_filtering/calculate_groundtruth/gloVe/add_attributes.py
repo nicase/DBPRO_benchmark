@@ -18,8 +18,8 @@ def read_dataset():
 baseV, queryV, _ = read_dataset()
 
 # UNCOMMENT TO TEST (10K BASE VECS, 100 QUERY VECS)
-# baseV = baseV[:10000]
-# queryV = queryV[:100]
+baseV = baseV[:10000]
+queryV = queryV[:100]
 
 base_vectors_with_attributes = pd.DataFrame({'vector': baseV})
 num_rows = len(base_vectors_with_attributes)
