@@ -16,7 +16,7 @@ def setup_client():
 def read_dataset():
     base_vectors = utils.read_fvecs(os.getenv('BASE_VECTORS_PATH'))
     query_vectors = utils.read_fvecs(os.getenv('QUERY_VECTORS_PATH'))
-    with open(os.getenv('ANN_SIFT_COSINE_GT_PATH'), 'rb') as f:
+    with open(f'{os.getenv("ANN_GROUND_TRUTH_DIR")}ANN_SIFT_COSINE_GT.pkl', 'rb') as f:
         groundTruth = pickle.load(f)
     return base_vectors, query_vectors, groundTruth
 

@@ -15,8 +15,14 @@ def setup_client():
 
 def read_dataset():
     base_vectors, query_vectors, _ = utils.read_h5vs(os.getenv("H5PY_GLOVE_PATH"))
-    with open(os.getenv("ANN_gloVe_EUCLIDEAN_GT_PATH"), 'rb') as f:
+    with open(f'{os.getenv("ANN_GROUND_TRUTH_DIR")}ANN_gloVe_EUCLIDEAN_GT.pkl', 'rb') as f:
         groundTruth = pickle.load(f)
+    
+    if len(groundTruth) < 11000:
+        base_vectors=base_vectors[:10000]
+        base_vectors = [[float(elem) for elem in vector] for vector in base_vectors]
+        query_vectors=query_vectors[:100]
+        query_vectors = [[float(elem) for elem in vector] for vector in query_vectors]
     return base_vectors, query_vectors, groundTruth
 
 def create_collection(qdrantClient, collection_name, ef_construct, m):
@@ -84,7 +90,8 @@ def main():
     # Create csv file
     current_date = datetime.datetime.now().strftime("%d_%m_%y_%H:%M")
     headers = ["ef_construct", "m", "ef", "k", "qps", "recall", "time_span_insert", "time_span_search", "time_span_points", "timestamp"]
-    file_name = f"qdrant_gloVe_euclidean_ann{current_date}.csv"
+    results_dir = os.getenv("ANN_QDRANT_RESULTS_DIR")
+    file_name = f"{results_dir}qdrant_gloVe_euclidean_ann{current_date}.csv"
     # print(datetime)
 
     with open(file_name, mode='w', newline='') as file:
