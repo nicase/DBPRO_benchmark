@@ -20,9 +20,9 @@ def read_dataset():
     
     if len(groundTruth) < 11000:
         base_vectors=base_vectors[:10000]
-        base_vectors = [[float(elem) for elem in vector] for vector in base_vectors]
         query_vectors=query_vectors[:100]
-        query_vectors = [[float(elem) for elem in vector] for vector in query_vectors]
+    base_vectors = [[float(elem) for elem in vector] for vector in base_vectors]
+    query_vectors = [[float(elem) for elem in vector] for vector in query_vectors]
     return base_vectors, query_vectors, groundTruth
 
 def create_collection(qdrantClient, collection_name, ef_construct, m):
