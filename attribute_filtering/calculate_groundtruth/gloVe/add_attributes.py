@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 def read_dataset():
     load_dotenv()
     base_vectors, query_vectors, _ = utils.read_h5vs(os.getenv('H5PY_GLOVE_PATH'))
+    base_vectors = [[float(elem) for elem in vector] for vector in base_vectors]
+    query_vectors = [[float(elem) for elem in vector] for vector in query_vectors]
     return base_vectors, query_vectors, _
 
 if len(sys.argv) > 1:
