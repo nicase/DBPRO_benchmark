@@ -2,7 +2,7 @@ container_name="qdrant_container"
 memory_limit="512m"
 cpu_limit="0.5"
 port_mapping="6333:6333"
-LOGS_file="gloVe_euclidean.log"
+LOGS_file="AF_gloVe_euclidean.log"
 
 echo "Run this script from the root dir!!"
 docker run -d --name "$container_name" -p $port_mapping --memory="$memory_limit" --cpus="$cpu_limit" qdrant/qdrant
