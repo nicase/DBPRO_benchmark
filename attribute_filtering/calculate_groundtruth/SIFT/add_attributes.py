@@ -60,5 +60,6 @@ query_vectors_with_attributes['attr1'] = [random.choice([True, False]) for _ in 
 query_vectors_with_attributes['attr2'] = [random.choice([True, False]) for _ in range(num_rows)]
 query_vectors_with_attributes['attr3'] = [random.choice([True, False]) for _ in range(num_rows)]
 
-base_vectors_with_attributes.to_pickle('SIFT_BASEV_WITH_ATTRIBUTES.pkl')
-query_vectors_with_attributes.to_pickle('SIFT_QUERYV_WITH_ATTRIBUTES.pkl')
+ground_truth_folder = os.getenv('AF_GROUND_TRUTH_DIR')
+base_vectors_with_attributes.to_pickle(f'{ground_truth_folder}SIFT_BASEV_WITH_ATTRIBUTES.pkl')
+query_vectors_with_attributes.to_pickle(f'{ground_truth_folder}SIFT_QUERYV_WITH_ATTRIBUTES.pkl')
