@@ -20,7 +20,7 @@ python_pid=$!
 while ps -p $python_pid > /dev/null; do
 
     timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-    docker stats "$container_id" --no-stream --format "{{.CPUPerc}},{{.MemUsage}},$timestamp"    
+    docker stats "$container_id" --no-stream --format "{{.CPUPerc}},{{.MemUsage}},$timestamp" > "$LOGS_gloVe_COSINE"    
     sleep 5
 
 done
