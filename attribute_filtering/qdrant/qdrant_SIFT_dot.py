@@ -13,13 +13,13 @@ def setup_client():
     return qdrantClient
 
 def read_dataset(): 
-    with open(os.getenv('AF_SIFT_BASEV_PATH'), 'rb') as f:
-        query_vectors_with_attributes = pickle.load(f)
-
-    with open(os.getenv('AF_SIFT_QUERYV_PATH'), 'rb') as f:
+    with open(f'{os.getenv("AF_GROUND_TRUTH_DIR")}SIFT_BASEV_WITH_ATTRIBUTES.pkl', 'rb') as f:
         base_vectors_with_attributes = pickle.load(f)
 
-    with open(os.getenv('AF_SIFT_EUCLIDEAN_GT_PATH'), 'rb') as f:
+    with open(f'{os.getenv("AF_GROUND_TRUTH_DIR")}SIFT_QUERYV_WITH_ATTRIBUTES.pkl', 'rb') as f:
+        query_vectors_with_attributes = pickle.load(f)
+
+    with open(f'{os.getenv("AF_GROUND_TRUTH_DIR")}AF_SIFT_DOT_GT.pkl', 'rb') as f:
         truth = pickle.load(f)
 
     return base_vectors_with_attributes, query_vectors_with_attributes, truth
@@ -41,10 +41,10 @@ def create_collection(qdrantClient, collection_name, ef_construct, m):
 def insert_values(n, batch_points, qdrantClient, collection_name):
     batch_size = 50000
     num_batches = n // batch_size + int(n % batch_size > 0)
-    print(f'Number of batches: {num_batches}')
+    # print(f'Number of batches: {num_batches}')
 
     for batch_idx in range(num_batches):
-        print(f'Current progress: {(batch_idx+1)*batch_size}/{n}', end='\r')
+        # print(f'Current progress: {(batch_idx+1)*batch_size}/{n}', end='\r')
         start_idx = batch_idx * batch_size
         end_idx = min((batch_idx + 1) * batch_size, n)
 
@@ -57,10 +57,10 @@ def insert_values(n, batch_points, qdrantClient, collection_name):
         )
 
 def search_queries(query_vectors_with_attributes, qdrantClient, collection_name, ef, k):
-    print(f'Search function starting')
+    # print(f'Search function starting')
     result_ids = []
     for i,elem in query_vectors_with_attributes.iterrows():
-        print(f'Progress: {i}/{len(query_vectors_with_attributes)}', end='\r')
+        # print(f'Progress: {i}/{len(query_vectors_with_attributes)}', end='\r')
         # print(elem)
         vec = elem["vector"]
         attr1 = elem["attr1"]
@@ -116,7 +116,8 @@ def main():
     # Create csv file
     current_date = datetime.datetime.now().strftime("%d_%m_%y_%H:%M")
     headers = ["ef_construct", "m", "ef", "k", "qps", "recall", "time_span_insert", "time_span_search", "time_span_points", "timestamp"]
-    file_name = f"qdrant_SIFT_dot_af{current_date}.csv"
+    results_dir = os.getenv("AF_QDRANT_RESULTS_DIR")
+    file_name = f"{results_dir}qdrant_SIFT_dot_af{current_date}.csv"
     # print(datetime)
 
     with open(file_name, mode='w', newline='') as file:
@@ -130,16 +131,16 @@ def main():
     for ef_construct in ef_construct_values:
         for m in m_values:
             for ef in ef_values:
-                print("---------------------------------- CURRENT CONFIGURATION ----------------------------------")
-                print(f'ef_construct: {ef_construct} \nm: {m}\nef: {ef}')
-                print("-------------------------------------------------------------------------------------------")
+                # print("---------------------------------- CURRENT CONFIGURATION ----------------------------------")
+                # print(f'ef_construct: {ef_construct} \nm: {m}\nef: {ef}')
+                # print("-------------------------------------------------------------------------------------------")
 
                 collection_name = "AF_SIFT_DOT"
                 create_collection(qdrantClient, collection_name, ef_construct, m)
 
-                print("---------------------------------- INSERTING VALUES ----------------------------------")
+                # print("---------------------------------- INSERTING VALUES ----------------------------------")
                 
-                print("Creating Points")
+                # print("Creating Points")
                 start_time = time.time()
                 batch_points = [PointStruct(id=i, vector=elem["vector"], payload= {"attr1": elem["attr1"], "attr2": elem["attr2"], "attr3": elem["attr3"]}) for i, elem in baseV.iterrows()]
                 end_time = time.time()
@@ -149,7 +150,7 @@ def main():
                 insert_values(len(baseV), batch_points, qdrantClient, collection_name)
                 end_time_insert = time.time()
                 time_span_insert = end_time_insert - start_time_insert
-                print("-------------------------------------------------------------------------------------")
+                # print("-------------------------------------------------------------------------------------")
 
                 k_values = [1, 10, 100]
                 for k in k_values:
