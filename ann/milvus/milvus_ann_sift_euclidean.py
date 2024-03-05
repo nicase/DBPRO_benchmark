@@ -104,7 +104,7 @@ def run_experiment(run_ivf, m, ef, ef_search, lim):
 
     # Insert the base vectors into the collection
 
-    def insert_in_batches(collection, ids, vectors, batch_size=25000):
+    def insert_in_batches(collection, ids, vectors, batch_size=1000):
         total = len(vectors)
         for i in range(0, total, batch_size):
             batch_ids = ids[i:i + batch_size]
