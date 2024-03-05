@@ -1,8 +1,16 @@
+if [ "$1" = "prod" ]; then
+    environment="prod"
+else
+    environment="test"
+fi
 
+python3 /Users/nicolascamerlynck/Documents/WS2324/DBPRO/DBPRO_benchmark/ann/calculate_groundtruth/gloVe/cosine.py "$environment" &
+python3 /Users/nicolascamerlynck/Documents/WS2324/DBPRO/DBPRO_benchmark/ann/calculate_groundtruth/gloVe/dot.py "$environment" &
+python3 /Users/nicolascamerlynck/Documents/WS2324/DBPRO/DBPRO_benchmark/ann/calculate_groundtruth/gloVe/euclidean.py "$environment" &
 
-python3 gloVe/cosine.py &
-python3 gloVe/dot.py &
-python3 gloVe/euclidean.py &
+python3 /Users/nicolascamerlynck/Documents/WS2324/DBPRO/DBPRO_benchmark/ann/calculate_groundtruth/SIFT/cosine.py "$environment" &
+python3 /Users/nicolascamerlynck/Documents/WS2324/DBPRO/DBPRO_benchmark/ann/calculate_groundtruth/SIFT/dot.py "$environment" &
 
-python3 SIFT/cosine.py &
-python3 SIFT/dot.py &
+wait
+
+echo "All scripts executed succesfully"

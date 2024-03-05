@@ -25,7 +25,7 @@ def read_dataset():
     return base_vectors_with_attributes, query_vectors_with_attributes, truth
 
 def create_collection(qdrantClient, collection_name, ef_construct, m):
-    vector_size = 128
+    vector_size = 100
 
     qdrantClient.delete_collection(collection_name=collection_name)
 
