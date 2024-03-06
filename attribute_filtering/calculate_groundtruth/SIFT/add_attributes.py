@@ -24,7 +24,7 @@ def read_dataset(test):
 
 if len(sys.argv) > 1:
     environment = sys.argv[1]
-    print("SIFT cosine")
+    print("Adding attributes to SIFT...")
 
     if environment == "test":
         print("Running in test env (10K base vectors, 100 query vectors, 100 GT)")
@@ -34,6 +34,8 @@ if len(sys.argv) > 1:
         # Run in production environment
         print("Running in production env (1M base vectors, 10k query vectors, 10k GT)")
         baseV, queryV, _ = read_dataset(False)
+        baseV = baseV.tolist()[:500000]
+        queryV = queryV.tolist()[:5000]
 
     else:
         # Handle invalid environment
