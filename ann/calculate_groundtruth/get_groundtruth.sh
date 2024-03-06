@@ -10,6 +10,7 @@ python3 /Users/nicolascamerlynck/Documents/WS2324/DBPRO/DBPRO_benchmark/ann/calc
 
 python3 /Users/nicolascamerlynck/Documents/WS2324/DBPRO/DBPRO_benchmark/ann/calculate_groundtruth/SIFT/cosine.py "$environment" &
 python3 /Users/nicolascamerlynck/Documents/WS2324/DBPRO/DBPRO_benchmark/ann/calculate_groundtruth/SIFT/dot.py "$environment" &
+python3 /Users/nicolascamerlynck/Documents/WS2324/DBPRO/DBPRO_benchmark/ann/calculate_groundtruth/SIFT/euclidean.py "$environment" &
 
 wait
 
