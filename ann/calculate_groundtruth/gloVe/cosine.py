@@ -25,8 +25,10 @@ if len(sys.argv) > 1:
         # Run in production environment
         print("Running in production env (1M base vectors, 10k query vectors, 10k GT)")
         baseV, queryV, _ = read_dataset()
-        baseV = pd.DataFrame({'vector': baseV})
-        queryV = pd.DataFrame({'vector': queryV})
+        baseV = [[float(elem) for elem in vector] for vector in baseV]
+        queryV = [[float(elem) for elem in vector] for vector in queryV]
+        baseV = pd.DataFrame({'vector': baseV[:500000]})
+        queryV = pd.DataFrame({'vector': queryV[:5000]})
 
     else:
         # Handle invalid environment
