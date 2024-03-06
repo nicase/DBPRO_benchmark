@@ -45,8 +45,8 @@ else:
     sys.exit(1)
 
 
-baseV = pd.DataFrame({'vector': baseV.tolist()})
-queryV = pd.DataFrame({'vector': queryV.tolist()})
+baseV = pd.DataFrame({'vector': baseV.tolist()[:500000]})
+queryV = pd.DataFrame({'vector': queryV.tolist()[:5000]})
 
 # UNCOMMENT TO TEST (10K BASE VECS, 100 QUERY VECS)
 # baseV = pd.DataFrame({'vector': baseV[:10000]})
