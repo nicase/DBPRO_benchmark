@@ -50,13 +50,13 @@ else:
 # baseV = baseV[:10000]
 # queryV = queryV[:100]
 
-base_vectors_with_attributes = pd.DataFrame({'vector': baseV.tolist()})
+base_vectors_with_attributes = pd.DataFrame({'vector': baseV})
 num_rows = len(base_vectors_with_attributes)
 base_vectors_with_attributes['attr1'] = [random.choice([True, False]) for _ in range(num_rows)]
 base_vectors_with_attributes['attr2'] = [random.choice([True, False]) for _ in range(num_rows)]
 base_vectors_with_attributes['attr3'] = [random.choice([True, False]) for _ in range(num_rows)]
 
-query_vectors_with_attributes = pd.DataFrame({'vector': queryV.tolist()})
+query_vectors_with_attributes = pd.DataFrame({'vector': queryV})
 num_rows = len(query_vectors_with_attributes)
 query_vectors_with_attributes['attr1'] = [random.choice([True, False]) for _ in range(num_rows)]
 query_vectors_with_attributes['attr2'] = [random.choice([True, False]) for _ in range(num_rows)]
