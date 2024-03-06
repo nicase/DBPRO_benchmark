@@ -40,7 +40,7 @@ def create_collection(qdrantClient, collection_name, ef_construct, m):
     )
 
 def insert_values(base_vectors, qdrantClient, collection_name):
-    batch_size = 50000
+    batch_size = 25000
     num_batches = len(base_vectors) // batch_size + int(len(base_vectors) % batch_size > 0)
     print(f'Number of batches: {num_batches}')
 
@@ -101,8 +101,6 @@ def main():
 
     qdrantClient = setup_client()
     baseV, queryV, groundTruthV = read_dataset()
-    baseV = baseV[:10000]
-    queryV = queryV[:100]
     for ef_construct in ef_construct_values:
         for m in m_values:
             for ef in ef_values:
