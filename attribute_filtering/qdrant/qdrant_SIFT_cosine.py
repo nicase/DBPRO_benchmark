@@ -39,7 +39,7 @@ def create_collection(qdrantClient, collection_name, ef_construct, m):
     )
 
 def insert_values(n, batch_points, qdrantClient, collection_name):
-    batch_size = 50000
+    batch_size = 25000
     num_batches = n // batch_size + int(n % batch_size > 0)
     # print(f'Number of batches: {num_batches}')
 
