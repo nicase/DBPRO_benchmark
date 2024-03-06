@@ -14,9 +14,9 @@ def setup_client():
     return qdrantClient
 
 def read_dataset():
-    base_vectors = utils.read_fvecs(os.getenv('BASE_VECTORS_PATH'))
-    query_vectors = utils.read_fvecs(os.getenv('QUERY_VECTORS_PATH'))
-    groundTruth = utils.read_ivecs(os.getenv('GROUND_TRUTH_PATH'))
+    base_vectors = utils.read_fvecs(os.getenv('BASE_VECTORS_PATH_TEST'))
+    query_vectors = utils.read_fvecs(os.getenv('QUERY_VECTORS_PATH_TEST'))
+    groundTruth = utils.read_ivecs(os.getenv('GROUND_TRUTH_PATH_TEST'))
     return base_vectors, query_vectors, groundTruth
 
 def create_collection(qdrantClient, collection_name, ef_construct, m):
