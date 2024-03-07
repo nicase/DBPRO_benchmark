@@ -9,6 +9,7 @@ import pickle
 import os
 from dotenv import load_dotenv
 
+print("Starting gloVe cosine")
 load_dotenv()
 ground_truth_folder = os.getenv('AF_GROUND_TRUTH_DIR')
 with open(f'{ground_truth_folder}GLOVE_BASEV_WITH_ATTRIBUTES.pkl', 'rb') as f:
@@ -18,5 +19,6 @@ with open(f'{ground_truth_folder}GLOVE_QUERYV_WITH_ATTRIBUTES.pkl', 'rb') as f:
 
 truth = utils.top_k_neighbors(queryV, baseV, function="cosine")
 
+print("gloVe cosine done")
 with open(f'{ground_truth_folder}AF_gloVe_COSINE_GT.pkl', 'wb') as file:
     pickle.dump(truth, file)

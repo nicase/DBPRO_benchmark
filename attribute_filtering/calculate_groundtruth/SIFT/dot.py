@@ -9,6 +9,7 @@ import pickle
 import os
 from dotenv import load_dotenv
 
+print("Starting SIFT dot")
 load_dotenv()
 ground_truth_folder = os.getenv('AF_GROUND_TRUTH_DIR')
 with open(f'{ground_truth_folder}SIFT_BASEV_WITH_ATTRIBUTES.pkl', 'rb') as f:
@@ -16,7 +17,8 @@ with open(f'{ground_truth_folder}SIFT_BASEV_WITH_ATTRIBUTES.pkl', 'rb') as f:
 with open(f'{ground_truth_folder}SIFT_QUERYV_WITH_ATTRIBUTES.pkl', 'rb') as f:
         queryV = pickle.load(f)
 
-truth = utils.top_k_neighbors(queryV, baseV, function="cosine")
+truth = utils.top_k_neighbors(queryV, baseV, function="dot")
 
+print("SIFT dot done")
 with open(f'{ground_truth_folder}AF_SIFT_DOT_GT.pkl', 'wb') as file:
     pickle.dump(truth, file)

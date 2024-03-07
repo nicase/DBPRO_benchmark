@@ -20,14 +20,14 @@ if len(sys.argv) > 1:
     print("Adding attributes to gloVe...")
 
     if environment == "test":
-        print("Running in test env (10K base vectors, 100 query vectors, 100 GT)")
+        # print("Running in test env (10K base vectors, 100 query vectors, 100 GT)")
         baseV, queryV, _ = read_dataset()
         baseV = baseV[:10000]
         queryV = queryV[:100]
 
     elif environment == "prod":
         # Run in production environment
-        print("Running in production env (1M base vectors, 10k query vectors, 10k GT)")
+        # print("Running in production env (1M base vectors, 10k query vectors, 10k GT)")
         baseV, queryV, _ = read_dataset()
         baseV = baseV[:500000]
         queryV = queryV[:5000]

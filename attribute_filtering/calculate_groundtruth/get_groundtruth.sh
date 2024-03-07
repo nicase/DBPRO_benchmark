@@ -4,6 +4,8 @@ else
     environment="test"
 fi
 
+echo $environment
+
 python3 /Users/nicolascamerlynck/Documents/WS2324/DBPRO/DBPRO_benchmark/attribute_filtering/calculate_groundtruth/gloVe/add_attributes.py "$environment" &
 PID_GLOVE=$!
 

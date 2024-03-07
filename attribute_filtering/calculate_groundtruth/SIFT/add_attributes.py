@@ -27,12 +27,12 @@ if len(sys.argv) > 1:
     print("Adding attributes to SIFT...")
 
     if environment == "test":
-        print("Running in test env (10K base vectors, 100 query vectors, 100 GT)")
         baseV, queryV, _ = read_dataset(True)
+        baseV = baseV.tolist()
+        queryV = queryV.tolist()
 
     elif environment == "prod":
         # Run in production environment
-        print("Running in production env (1M base vectors, 10k query vectors, 10k GT)")
         baseV, queryV, _ = read_dataset(False)
         baseV = baseV.tolist()[:500000]
         queryV = queryV.tolist()[:5000]
